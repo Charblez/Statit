@@ -308,7 +308,20 @@ export default function CategoryPage({ currentUser }) {
   return (
     <div className="page">
       <h1 className="page-title">{category.name}</h1>
-      {category.description && <p style={{ color: 'var(--text-muted)', marginBottom: 24, marginTop: -16 }}>{category.description}</p>}
+      {category.description && (
+  <p 
+    style={{ 
+      color: 'var(--text-muted)', 
+      marginBottom: 24, 
+      marginTop: -16,
+      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+      overflow: 'hidden', 
+      textOverflow: 'ellipsis' 
+    }}
+  >
+    {category.description}
+  </p>
+)}
 
       {error && <div className="error-banner">{error}</div>}
 
