@@ -118,7 +118,19 @@ export default function CategoryPage({ currentUser }) {
         data = await getTopScores(categoryId, currentPage, 25);
       }
 
-      setScores(data.scores || []);
+      // FIXED: Deduplication logic allows anonymous users to coexist
+      const allScores = data.scores || [];
+      const seen = new Set();
+      const deduped = allScores.filter((entry) => {
+        if (entry.anonymous || entry.username === 'Anonymous') {
+          return true; 
+        }
+        if (seen.has(entry.username)) return false;
+        seen.add(entry.username);
+        return true;
+      });
+
+      setScores(deduped);
       setPage(data.page);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);

@@ -178,6 +178,7 @@ function AppContent() {
 
   const handleLogin = (userData) => {
     setCurrentUser(userData);
+    localStorage.setItem('currentUser', JSON.stringify(userData)); // FIXED: Saves user so login persists
   };
 
   const handleLogout = () => {
