@@ -7,12 +7,20 @@ const getStorage = (key, defaultValue) => {
   return saved ? JSON.parse(saved) : defaultValue;
 };
 
+const ADMIN_USERNAMES = [
+  "admin_Coleslaw",
+  "admin_Fries_Pikachu",
+  "admin_Toast",
+  "admin_Chicken"
+];
+
+const isAdmin = (user) => user && ADMIN_USERNAMES.includes(user.username);
+
 // --- SHARED STYLES ---
 const pageWrapperStyle = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
   minHeight: '100vh', width: '100vw', fontFamily: 'sans-serif', padding: '20px',
-  paddingTop: '100px', // Prevents content from hiding under top bar
-  boxSizing: 'border-box', textAlign: 'center', position: 'relative',
+  paddingTop: '100px', boxSizing: 'border-box', textAlign: 'center', position: 'relative',
   backgroundColor: '#fdfdfd'
 };
 
@@ -23,16 +31,10 @@ const topNavStyle = {
   padding: '0 30px', boxSizing: 'border-box', zIndex: 1000
 };
 
-const logoStyle = {
-  height: '50px', width: 'auto', cursor: 'pointer' 
-};
-
-const navLinksStyle = {
-  display: 'flex', gap: '15px', alignItems: 'center'
-};
-
+const logoStyle = { height: '50px', width: 'auto', cursor: 'pointer' };
+const navLinksStyle = { display: 'flex', gap: '15px', alignItems: 'center' };
 const backLinkStyle = { position: 'absolute', top: '100px', left: '20px', textDecoration: 'none', color: '#8b5cf6', fontWeight: 'bold', fontSize: '1.1rem', zIndex: 10 };
-const inputStyle = { padding: '12px', borderRadius: '8px', border: '1px solid #ccc', width: '280px', marginBottom: '15px', fontSize: '1rem' };
+const inputStyle = { padding: '12px', borderRadius: '8px', border: '1px solid #ccc', width: '280px', marginBottom: '15px', fontSize: '1rem', boxSizing: 'border-box' };
 
 const mainButtonStyle = { 
   padding: '15px 20px', cursor: 'pointer', borderRadius: '8px', border: '2px solid #8b5cf6',
@@ -45,18 +47,16 @@ const smallButtonStyle = {
 };
 
 const funTitleStyle = {
-  fontSize: '3.2rem', 
-  marginBottom: '40px', 
-  color: '#2c3e50',
+  fontSize: '3.2rem', marginBottom: '40px', color: '#2c3e50',
   fontFamily: '"Comic Sans MS", "Chalkboard SE", "Marker Felt", cursive'
 };
 
 // --- MAIN APP ---
 export default function App() {
   const defaultPresets = [
-    { name: "Wealth", better: "large", unit: "$", type: "global" },
-    { name: "Health", better: "large", unit: "pts", type: "global" },
-    { name: "Speed", better: "small", unit: "sec", type: "global" }
+    { id: '1', name: "Wealth", description: "Total net worth", better: "large", unit: "$", type: "global", status: "approved", min: 0, max: 1000000000000 },
+    { id: '2', name: "Health", description: "Overall health score", better: "large", unit: "pts", type: "global", status: "approved", min: 0, max: 100 },
+    { id: '3', name: "Speed", description: "100m sprint time", better: "small", unit: "sec", type: "global", status: "approved", min: 5, max: 60 }
   ];
 
   const [categories, setCategories] = useState(() => getStorage('categories', defaultPresets));
@@ -85,6 +85,7 @@ export default function App() {
 // --- APP CONTENT ---
 const AppContent = ({ categories, setCategories, allStats, setAllStats, users, setUsers, currentUser, setCurrentUser }) => {
   const logout = () => setCurrentUser(null);
+  const userIsAdmin = isAdmin(currentUser);
 
   return (
     <>
@@ -94,6 +95,12 @@ const AppContent = ({ categories, setCategories, allStats, setAllStats, users, s
         </Link>
 
         <div style={navLinksStyle}>
+          {userIsAdmin && (
+            <Link to="/admin">
+              <button className="nav-button" style={{ color: '#d97706' }}>Admin Panel</button>
+            </Link>
+          )}
+
           <Link to="/global">
             <button className="nav-button">Global Categories</button>
           </Link>
@@ -120,11 +127,14 @@ const AppContent = ({ categories, setCategories, allStats, setAllStats, users, s
         <Route path="/signup" element={currentUser ? <Navigate to="/" /> : <AuthPage mode="signup" users={users} setUsers={setUsers} setCurrentUser={setCurrentUser} />} />
         <Route path="/profile" element={currentUser ? <ProfilePage currentUser={currentUser} setUsers={setUsers} setCurrentUser={setCurrentUser} /> : <Navigate to="/login" />} />
         
+        {/* Admin Route */}
+        <Route path="/admin" element={userIsAdmin ? <AdminPage categories={categories} setCategories={setCategories} /> : <Navigate to="/" />} />
+
         {/* Unlocked Routes */}
-        <Route path="/global" element={<CategoryList title="Global Categories" categories={categories.filter(c => c.type === 'global')} />} />
-        <Route path="/created" element={currentUser ? <CategoryList title="Your Created Categories" categories={categories.filter(c => c.type !== 'global')} /> : <Navigate to="/login" />} />
-        <Route path="/create" element={currentUser ? <CreateCategory setCategories={setCategories} /> : <Navigate to="/login" />} />
-        <Route path="/ranking/:categoryName" element={<RankingPage categories={categories} allStats={allStats} setAllStats={setAllStats} currentUser={currentUser} />} />
+        <Route path="/global" element={<CategoryList title="Global Categories" categories={categories.filter(c => c.type === 'global' && c.status !== 'pending')} />} />
+        <Route path="/created" element={currentUser ? <CategoryList title="Your Created Categories" categories={categories.filter(c => c.type !== 'global')} currentUser={currentUser} /> : <Navigate to="/login" />} />
+        <Route path="/create" element={currentUser ? <CreateCategory setCategories={setCategories} currentUser={currentUser} /> : <Navigate to="/login" />} />
+        <Route path="/ranking/:categoryId" element={<RankingPage categories={categories} allStats={allStats} setAllStats={setAllStats} currentUser={currentUser} />} />
       </Routes>
     </>
   );
@@ -157,6 +167,7 @@ const ProfilePage = ({ currentUser, setUsers, setCurrentUser }) => {
       <h2 style={{ fontSize: '2.5rem', marginBottom: '30px' }}>Your Profile</h2>
       <div style={{ backgroundColor: '#fff', padding: '40px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', minWidth: '350px' }}>
         <p style={{ fontSize: '1.4rem', margin: 0 }}><strong>Username:</strong> {currentUser.username}</p>
+        {isAdmin(currentUser) && <span style={{ backgroundColor: '#d97706', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold' }}>Admin</span>}
         <div style={{ borderTop: '1px solid #eee', width: '100%', margin: '10px 0' }}></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Anonymous Mode:</span>
@@ -168,9 +179,65 @@ const ProfilePage = ({ currentUser, setUsers, setCurrentUser }) => {
           </button>
         </div>
         <p style={{ color: '#666', fontSize: '1rem', maxWidth: '280px', margin: 0 }}>
-          {currentUser.isAnonymous ? "Your new entries will be hidden and appear as 'Anonymous' on the leaderboards." : "Your new entries will publicly display your username on the leaderboards."}
+          {currentUser.isAnonymous ? "Your new entries will be hidden and appear as 'Anonymous'." : "Your new entries will publicly display your username."}
         </p>
       </div>
+    </div>
+  );
+};
+
+// --- ADMIN PAGE ---
+const AdminPage = ({ categories, setCategories }) => {
+  const pendingCategories = categories.filter(c => c.status === 'pending');
+
+  const handleApprove = (id, updatedData) => {
+    setCategories(prev => prev.map(cat => 
+      cat.id === id ? { ...cat, ...updatedData, status: 'approved' } : cat
+    ));
+    alert("Category Approved!");
+  };
+
+  return (
+    <div style={pageWrapperStyle}>
+      <Link to="/" style={backLinkStyle}>← Back to Main</Link>
+      <h2 style={{ fontSize: '2.5rem', marginBottom: '30px', color: '#d97706' }}>Admin Dashboard</h2>
+      
+      {pendingCategories.length === 0 ? (
+        <p style={{ fontSize: '1.2rem' }}>No pending categories to review!</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', maxWidth: '600px' }}>
+          {pendingCategories.map(cat => (
+            <AdminReviewCard key={cat.id} category={cat} onApprove={handleApprove} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AdminReviewCard = ({ category, onApprove }) => {
+  const [editName, setEditName] = useState(category.name);
+  const [editDesc, setEditDesc] = useState(category.description || '');
+  const [editMin, setEditMin] = useState(category.min);
+  const [editMax, setEditMax] = useState(category.max);
+
+  return (
+    <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <p style={{ margin: 0, fontWeight: 'bold', color: '#666' }}>Created by: {category.creator || 'Unknown'}</p>
+      <input style={inputStyle} value={editName} onChange={e => setEditName(e.target.value)} placeholder="Category Name" />
+      <input style={inputStyle} value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" />
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <input style={{...inputStyle, width: '135px'}} type="number" value={editMin} onChange={e => setEditMin(e.target.value)} placeholder="Min" />
+        <input style={{...inputStyle, width: '135px'}} type="number" value={editMax} onChange={e => setEditMax(e.target.value)} placeholder="Max" />
+      </div>
+      <p style={{ margin: 0, fontSize: '0.9rem', color: '#888' }}>Unit: {category.unit} | Better: {category.better}</p>
+      
+      <button 
+        onClick={() => onApprove(category.id, { name: editName, description: editDesc, min: Number(editMin), max: Number(editMax) })}
+        style={{ ...mainButtonStyle, width: '100%', backgroundColor: '#4CAF50', color: 'white', border: 'none', fontSize: '1.1rem', marginTop: '10px' }}
+      >
+        Approve Category
+      </button>
     </div>
   );
 };
@@ -225,39 +292,79 @@ const AuthPage = ({ mode, users, setUsers, setCurrentUser }) => {
 };
 
 // --- CATEGORY LIST PAGE ---
-const CategoryList = ({ title, categories }) => (
-  <div style={pageWrapperStyle}>
-    <Link to="/" style={backLinkStyle}>← Back to Main</Link>
-    <h2 style={{ fontSize: '2rem', marginBottom: '30px' }}>{title}</h2>
-    {categories.length === 0 ? (
-      <div style={{ fontSize: '1.2rem' }}>
-        <p>No categories here yet.</p>
-        {title.includes("Created") && <Link to="/create" style={{ color: '#8b5cf6' }}>Create one now!</Link>}
-      </div>
-    ) : (
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', maxWidth: '900px' }}>
-        {categories.map(cat => (
-          <Link key={cat.name} to={`/ranking/${cat.name}`} style={{ 
-            width: '160px', height: '160px', border: '2px solid #8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            textDecoration: 'none', color: 'black', fontWeight: 'bold', borderRadius: '15px', backgroundColor: '#fff', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
-          }}>{cat.name}</Link>
-        ))}
-      </div>
-    )}
-  </div>
-);
+const CategoryList = ({ title, categories, currentUser }) => {
+  // If we are looking at "Created Categories", filter to only show ones this user made or that are approved.
+  const displayCategories = categories.filter(c => {
+    if (c.status === 'approved') return true;
+    if (c.status === 'pending' && currentUser && c.creator === currentUser.username) return true;
+    return false;
+  });
+
+  return (
+    <div style={pageWrapperStyle}>
+      <Link to="/" style={backLinkStyle}>← Back to Main</Link>
+      <h2 style={{ fontSize: '2rem', marginBottom: '30px' }}>{title}</h2>
+      
+      {displayCategories.length === 0 ? (
+        <div style={{ fontSize: '1.2rem' }}>
+          <p>No categories here yet.</p>
+          {title.includes("Created") && <Link to="/create" style={{ color: '#8b5cf6' }}>Create one now!</Link>}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', maxWidth: '900px' }}>
+          {displayCategories.map(cat => (
+            <Link key={cat.id} to={`/ranking/${cat.id}`} style={{ 
+              width: '180px', height: '180px', border: '2px solid #8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+              textDecoration: 'none', color: 'black', borderRadius: '15px', backgroundColor: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', position: 'relative', padding: '10px', boxSizing: 'border-box'
+            }}>
+              {cat.status === 'pending' && <span style={{ position: 'absolute', top: '10px', fontSize: '0.8rem', backgroundColor: '#f59e0b', color: 'white', padding: '3px 8px', borderRadius: '10px' }}>Pending Admin Approval</span>}
+              <span style={{ fontWeight: 'bold', fontSize: '1.1rem', marginTop: cat.status === 'pending' ? '15px' : '0' }}>{cat.name}</span>
+              <span style={{ fontSize: '0.85rem', color: '#666', marginTop: '5px' }}>Min: {cat.min} | Max: {cat.max}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- CREATE CATEGORY PAGE ---
-const CreateCategory = ({ setCategories }) => {
+const CreateCategory = ({ setCategories, currentUser }) => {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [better, setBetter] = useState("large");
   const [unit, setUnit] = useState("");
+  const [min, setMin] = useState("");
+  const [max, setMax] = useState("");
   const navigate = useNavigate();
 
   const handleCreate = (e) => {
     e.preventDefault();
-    if (!name || !unit) return;
-    setCategories(prev => [...prev, { name, better, unit, type: "user" }]);
+    if (!name || !unit || min === "" || max === "") return;
+    
+    const minVal = Number(min);
+    const maxVal = Number(max);
+
+    if (maxVal <= minVal) {
+      alert("Error: The maximum value MUST be greater than the minimum value!");
+      return;
+    }
+
+    const newCategory = { 
+      id: Date.now().toString(),
+      name, 
+      description,
+      better, 
+      unit, 
+      type: "user",
+      min: minVal,
+      max: maxVal,
+      creator: currentUser.username,
+      status: isAdmin(currentUser) ? "approved" : "pending" 
+    };
+
+    setCategories(prev => [...prev, newCategory]);
+    alert(isAdmin(currentUser) ? "Category created and approved!" : "Category created! Waiting for Admin approval.");
     navigate('/created');
   };
 
@@ -265,21 +372,45 @@ const CreateCategory = ({ setCategories }) => {
     <div style={pageWrapperStyle}>
       <Link to="/" style={backLinkStyle}>← Back</Link>
       <h2 style={{ fontSize: '2rem' }}>Design Your Ranking</h2>
-      <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', backgroundColor: '#fff', padding: '40px', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+      <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', backgroundColor: '#fff', padding: '40px', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', width: '400px' }}>
+        
         <div style={{ textAlign: 'left', width: '100%' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Category Name</label>
-          <input style={inputStyle} placeholder="e.g. Typing Speed" value={name} onChange={e => setName(e.target.value)} required />
+          <input style={{...inputStyle, width: '100%'}} placeholder="e.g. Typing Speed" value={name} onChange={e => setName(e.target.value)} required />
         </div>
+
+        <div style={{ textAlign: 'left', width: '100%' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Description</label>
+          <input style={{...inputStyle, width: '100%'}} placeholder="e.g. Words per minute on a standard test" value={description} onChange={e => setDescription(e.target.value)} required />
+        </div>
+
+        <div style={{ display: 'flex', gap: '15px', width: '100%' }}>
+          <div style={{ textAlign: 'left', flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Min Value</label>
+            <input type="number" style={{...inputStyle, width: '100%'}} placeholder="0" value={min} onChange={e => setMin(e.target.value)} required />
+          </div>
+          <div style={{ textAlign: 'left', flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Max Value</label>
+            <input type="number" style={{...inputStyle, width: '100%'}} placeholder="300" value={max} onChange={e => setMax(e.target.value)} required />
+          </div>
+        </div>
+
         <div style={{ textAlign: 'left', width: '100%' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Measurement Unit</label>
-          <input style={inputStyle} placeholder="e.g. WPM" value={unit} onChange={e => setUnit(e.target.value)} required />
+          <input style={{...inputStyle, width: '100%'}} placeholder="e.g. WPM" value={unit} onChange={e => setUnit(e.target.value)} required />
         </div>
-        <div>
+
+        <div style={{ width: '100%' }}>
           <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>Which is better?</p>
-          <button type="button" onClick={() => setBetter('large')} style={{ ...mainButtonStyle, width: 'auto', fontSize: '1rem', padding: '10px 15px', backgroundColor: better === 'large' ? '#8b5cf6' : '#fff', color: better === 'large' ? '#fff' : '#000' }}>Large Number</button>
-          <button type="button" onClick={() => setBetter('small')} style={{ ...mainButtonStyle, width: 'auto', fontSize: '1rem', padding: '10px 15px', marginLeft: '10px', backgroundColor: better === 'small' ? '#8b5cf6' : '#fff', color: better === 'small' ? '#fff' : '#000' }}>Small Number</button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="button" onClick={() => setBetter('large')} style={{ ...mainButtonStyle, flex: 1, fontSize: '1rem', padding: '10px 15px', backgroundColor: better === 'large' ? '#8b5cf6' : '#fff', color: better === 'large' ? '#fff' : '#000' }}>Large Number</button>
+            <button type="button" onClick={() => setBetter('small')} style={{ ...mainButtonStyle, flex: 1, fontSize: '1rem', padding: '10px 15px', backgroundColor: better === 'small' ? '#8b5cf6' : '#fff', color: better === 'small' ? '#fff' : '#000' }}>Small Number</button>
+          </div>
         </div>
-        <button type="submit" style={{ ...mainButtonStyle, width: '100%', backgroundColor: '#4CAF50', color: 'white', border: 'none' }}>Create Category</button>
+
+        <button type="submit" style={{ ...mainButtonStyle, width: '100%', backgroundColor: '#4CAF50', color: 'white', border: 'none', marginTop: '10px' }}>
+          {isAdmin(currentUser) ? "Create Category" : "Submit for Approval"}
+        </button>
       </form>
     </div>
   );
@@ -287,9 +418,15 @@ const CreateCategory = ({ setCategories }) => {
 
 // --- RANKING PAGE ---
 const RankingPage = ({ categories, allStats, setAllStats, currentUser }) => {
-  const { categoryName } = useParams();
-  const catInfo = categories.find(c => c.name === categoryName) || { better: 'large', unit: '', type: 'global' };
-  const currentStats = allStats[categoryName] || [];
+  const { categoryId } = useParams();
+  const catInfo = categories.find(c => c.id === categoryId) || categories.find(c => c.name === categoryId); 
+  
+  // Guard clause if someone tries to access a pending category directly
+  if (!catInfo || (catInfo.status === 'pending' && currentUser?.username !== catInfo.creator && !isAdmin(currentUser))) {
+    return <div style={pageWrapperStyle}><h2>Category not found or pending approval.</h2><Link to="/">Go back</Link></div>;
+  }
+
+  const currentStats = allStats[catInfo.id] || [];
   
   const [val, setVal] = useState("");
   const [gender, setGender] = useState("Male");
@@ -301,11 +438,19 @@ const RankingPage = ({ categories, allStats, setAllStats, currentUser }) => {
   const addEntry = (e) => {
     e.preventDefault();
     if (!val) return;
+
+    const numVal = parseFloat(val);
     
-    const newEntry = { name: displayName, value: parseFloat(val), gender, region };
+    // Validation for min/max
+    if (numVal < catInfo.min || numVal > catInfo.max) {
+      alert(`Invalid! Your score must be between ${catInfo.min} and ${catInfo.max}.`);
+      return;
+    }
+    
+    const newEntry = { name: displayName, value: numVal, gender, region };
     const updated = [...currentStats, newEntry]; 
     
-    setAllStats(prev => ({ ...prev, [categoryName]: updated }));
+    setAllStats(prev => ({ ...prev, [catInfo.id]: updated }));
     setVal(""); 
   };
 
@@ -344,13 +489,19 @@ const RankingPage = ({ categories, allStats, setAllStats, currentUser }) => {
   return (
     <div style={{ ...pageWrapperStyle, justifyContent: 'flex-start', paddingTop: '80px' }}>
       <Link to={catInfo.type === 'global' ? "/global" : "/created"} style={backLinkStyle}>← Back</Link>
-      <h2 style={{ textTransform: 'capitalize', fontSize: '2.5rem', marginBottom: '20px' }}>{categoryName} Rankings</h2>
+      
+      <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ textTransform: 'capitalize', fontSize: '2.5rem', margin: '0' }}>{catInfo.name} Rankings</h2>
+        {catInfo.description && <p style={{ color: '#666', fontSize: '1.2rem', marginTop: '5px' }}>{catInfo.description}</p>}
+        {catInfo.status === 'pending' && <p style={{ color: '#d97706', fontWeight: 'bold' }}>⚠️ Pending Admin Approval - Stats entered now may be wiped if rejected.</p>}
+      </div>
       
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', marginBottom: '40px' }}>
         
         {currentUser ? (
           <form onSubmit={addEntry} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', backgroundColor: '#fff', padding: '25px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
             <h3 style={{ margin: 0, fontSize: '1.3rem' }}>Submit Your Stat</h3>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#888' }}>Allowed Range: {catInfo.min} to {catInfo.max}</p>
             
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <input type="number" value={val} onChange={e => setVal(e.target.value)} placeholder="0" style={{ width: '100px', height: '60px', textAlign: 'center', border: '2px solid #8b5cf6', fontSize: '24px', borderRadius: '10px' }} required />
