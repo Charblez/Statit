@@ -26,6 +26,12 @@ const handleSubmit = async (e) => {
         return;
       }
 
+        if (units.length > 30) {
+        setError('Units must be 30 characters or less.');
+        setLoading(false);
+        return;
+      }
+
       const tagList = tags
         .split(',')
         .map((t) => t.trim())
@@ -83,7 +89,7 @@ const handleSubmit = async (e) => {
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Typing Speed"
+                placeholder="e.g. Typing Speed (max 70 chars)"
                 maxLength={70}
                 required
               />
@@ -105,7 +111,8 @@ const handleSubmit = async (e) => {
                 className="input"
                 value={units}
                 onChange={(e) => setUnits(e.target.value)}
-                placeholder="e.g. WPM, kg, seconds"
+                placeholder="e.g. WPM, kg, seconds (max 30 chars)"
+                maxLength={30}
                 required
               />
             </div>
