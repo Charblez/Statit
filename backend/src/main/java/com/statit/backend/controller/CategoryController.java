@@ -123,8 +123,9 @@ public class CategoryController
         String name = category.getName();
         categoryService.deleteCategory(categoryId);
 
+        // Added two extra nulls for lowerLimit and upperLimit
         return ResponseEntity.ok(new CategoryResponse(
-                categoryId, name, null, null, null, null, null,
+                categoryId, name, null, null, null, null, null, null, null,
                 "Category deleted successfully"
         ));
     }

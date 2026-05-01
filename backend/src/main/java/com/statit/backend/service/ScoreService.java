@@ -69,16 +69,13 @@ public class ScoreService
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
 
-        // ==========================================
         // ENFORCE THE DYNAMIC CATEGORY LIMITS HERE
-        // ==========================================
-        if (category.getMinScore() != null && scoreValue < category.getMinScore()) {
-            throw new IllegalArgumentException("Score must be at least " + category.getMinScore() + " for this category.");
+        if (category.getLowerLimit() != null && scoreValue < category.getLowerLimit()) {
+            throw new IllegalArgumentException("Score must be at least " + category.getLowerLimit() + " for this category.");
         }
-        if (category.getMaxScore() != null && scoreValue > category.getMaxScore()) {
-            throw new IllegalArgumentException("Score cannot exceed " + category.getMaxScore() + " for this category.");
+        if (category.getUpperLimit() != null && scoreValue > category.getUpperLimit()) {
+            throw new IllegalArgumentException("Score cannot exceed " + category.getUpperLimit() + " for this category.");
         }
-        // ==========================================
 
         Score previousTopScore = getTopScoreForUser(category, user).orElse(null);
 
