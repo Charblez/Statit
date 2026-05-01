@@ -13,7 +13,6 @@ package com.statit.backend.dto;
 // Imports
 //----------------------------------------------------------------------------------------------------
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +24,8 @@ public record CategoryCreateRequest(String name,
                                     String units,
                                     List<String> tags,
                                     @JsonProperty("sort_order") Boolean sortOrder,
-                                    @JsonProperty("founding_username") String foundingUsername)
+                                    @JsonProperty("founding_username") String foundingUsername,
+                                    @JsonProperty("lower_limit") Double lowerLimit,
+                                    @JsonProperty("upper_limit") Double upperLimit)
 {
 }

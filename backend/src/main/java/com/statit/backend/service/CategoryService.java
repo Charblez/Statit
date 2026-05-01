@@ -54,6 +54,8 @@ public class CategoryService
                                    String units,
                                    List<String> tags,
                                    Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
                                    User foundingUser)
     {
         //Check if category exists already
@@ -69,7 +71,9 @@ public class CategoryService
                 units,
                 tags,
                 sortOrder,
-                foundingUser
+                foundingUser,
+                lowerLimit,
+                upperLimit
         );
 
         //Re-assign to ensure get UUID from database
@@ -87,12 +91,14 @@ public class CategoryService
                                    String description,
                                    List<String> tags,
                                    String units,
-                                   Boolean sortOrder)
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit)
     {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
 
-        category.update(name, description, units, tags, sortOrder);
+        category.update(name, description, units, tags, sortOrder, lowerLimit, upperLimit);
         return categoryRepository.save(category);
     }
 

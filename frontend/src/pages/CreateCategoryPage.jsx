@@ -11,17 +11,32 @@ export default function CreateCategoryPage({ currentUser }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [lowerLimit, setLowerLimit] = useState('');
+  const [upperLimit, setUpperLimit] = useState('');
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      if (name.length > 70) {
+        setError('Category name must be 70 characters or less.');
+        setLoading(false);
+        return;
+      }
+
       const tagList = tags
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
+
+      const overlongTags = tagList.filter((t) => t.length > 20);
+      if (overlongTags.length > 0) {
+        setError('Each tag must be 20 characters or less.');
+        setLoading(false);
+        return; 
+      }
 
       await createCategory({
         name,
@@ -30,6 +45,8 @@ export default function CreateCategoryPage({ currentUser }) {
         tags: tagList,
         sort_order: sortOrder,
         founding_username: currentUser.username,
+        lower_limit: lowerLimit !== '' ? parseFloat(lowerLimit) : null,
+        upper_limit: upperLimit !== '' ? parseFloat(upperLimit) : null,
       });
 
       navigate('/');
@@ -67,6 +84,7 @@ export default function CreateCategoryPage({ currentUser }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Typing Speed"
+                maxLength={70}
                 required
               />
             </div>
@@ -98,7 +116,31 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="e.g. fitness, speed, gaming"
+                placeholder="e.g. fitness, speed (max 20 chars each)"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Lower Limit (Optional)</label>
+              <input
+                className="input"
+                type="number"
+                step="any" /* Allows negatives and decimals */
+                value={lowerLimit}
+                onChange={(e) => setLowerLimit(e.target.value)}
+                placeholder="e.g. -100"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Upper Limit (Optional)</label>
+              <input
+                className="input"
+                type="number"
+                step="any"
+                value={upperLimit}
+                onChange={(e) => setUpperLimit(e.target.value)}
+                placeholder="e.g. 1000"
               />
             </div>
 
@@ -121,6 +163,7 @@ export default function CreateCategoryPage({ currentUser }) {
                 </button>
               </div>
             </div>
+
 
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
               {loading ? 'Creating...' : 'Create Category'}

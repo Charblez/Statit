@@ -253,11 +253,15 @@ export default function CategoryPage({ currentUser }) {
     return '';
   };
 
-  const formatNumber = (num) => {
+const formatNumber = (num) => {
     if (num == null) return '-';
-    return Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const n = Number(num);
+    if (Math.abs(n) >= 1e8) {
+      return n.toExponential(3);
+    }
+    
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
-
   const formatCompactNumber = (num) => {
     if (num == null) return '-';
     return Number(num).toLocaleString(undefined, {

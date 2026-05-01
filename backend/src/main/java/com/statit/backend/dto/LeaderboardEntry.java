@@ -20,7 +20,7 @@ public record LeaderboardEntry(
         int rank,
         UUID scoreId,
         String username,
-        Float score,
+        Double score,
         Map<String, String> tags,
         Boolean anonymous,
         LocalDateTime submittedAt

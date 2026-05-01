@@ -57,10 +57,10 @@ public class ScoreService
     // Public Methods
     //------------------------------------------------------------------------------------------------
     @Transactional
-    public Score submitScore(UUID userId, UUID categoryId, Float scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
+    public Score submitScore(UUID userId, UUID categoryId, Double scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
     {
         //Fetch the user and category
-        if (scoreValue != null && (scoreValue < 0 || scoreValue > 999999999999f)) {
+        if (scoreValue != null && (scoreValue < 0 || scoreValue > 999999999999)) {
             throw new IllegalArgumentException("Score must be between 0 and 999,999,999,999.");
         }
 
