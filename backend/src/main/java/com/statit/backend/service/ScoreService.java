@@ -60,9 +60,9 @@ public class ScoreService
     public Score submitScore(UUID userId, UUID categoryId, Double scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
     {
         // Fetch the user and category
-        if (scoreValue != null && (scoreValue < 0 || scoreValue > 999999999999D)) {
-            throw new IllegalArgumentException("Score must be between 0 and 999,999,999,999.");
-        }
+        if (scoreValue != null && (scoreValue < -99999999999 || scoreValue > 999999999999D)) {
+    throw new IllegalArgumentException("Score must be between -999,999,999,999 and 999,999,999,999.");
+}
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found."));

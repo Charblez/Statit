@@ -101,7 +101,7 @@ public class CategoryController
         return ResponseEntity.ok(response);
     }
 
-    @@PutMapping("/{categoryId}")
+    @PutMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCategory(@PathVariable UUID categoryId,
                                                            @RequestBody CategoryCreateRequest request)
     {
