@@ -132,10 +132,10 @@ public class Category
     @Column(name = "sort_order", nullable = false)
     private Boolean sortOrder;
 
-    @Column(name = "lower_limit")
+    @Column(name = "lower_limit", nullable = false)
     private Double lowerLimit;
 
-    @Column(name = "upper_limit")
+    @Column(name = "upper_limit", nullable = false)
     private Double upperLimit;
 
     @ManyToOne(fetch = FetchType.LAZY)

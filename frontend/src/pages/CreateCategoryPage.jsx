@@ -51,8 +51,8 @@ const handleSubmit = async (e) => {
         tags: tagList,
         sort_order: sortOrder,
         founding_username: currentUser.username,
-        lower_limit: lowerLimit !== '' ? parseFloat(lowerLimit) : null,
-        upper_limit: upperLimit !== '' ? parseFloat(upperLimit) : null,
+        lower_limit: parseFloat(lowerLimit), // <-- Changed
+        upper_limit: parseFloat(upperLimit), // <-- Changed
       });
 
       navigate('/');
@@ -128,19 +128,20 @@ const handleSubmit = async (e) => {
             </div>
 
             <div className="form-group">
-              <label>Lower Limit (Optional)</label>
+              <label>Lower Limit (Required)</label>
               <input
                 className="input"
                 type="number"
                 step="any" /* Allows negatives and decimals */
                 value={lowerLimit}
                 onChange={(e) => setLowerLimit(e.target.value)}
-                placeholder="e.g. -100"
+                placeholder="e.g. -1000"
+                required
               />
             </div>
 
             <div className="form-group">
-              <label>Upper Limit (Optional)</label>
+              <label>Upper Limit (Required)</label>
               <input
                 className="input"
                 type="number"
@@ -148,6 +149,7 @@ const handleSubmit = async (e) => {
                 value={upperLimit}
                 onChange={(e) => setUpperLimit(e.target.value)}
                 placeholder="e.g. 1000"
+                required
               />
             </div>
 
