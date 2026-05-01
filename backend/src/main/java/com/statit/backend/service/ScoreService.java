@@ -59,8 +59,8 @@ public class ScoreService
     @Transactional
     public Score submitScore(UUID userId, UUID categoryId, Double scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
     {
-        //Fetch the user and category
-        if (scoreValue != null && (scoreValue < 0 || scoreValue > 999999999999)) {
+        // Fetch the user and category
+        if (scoreValue != null && (scoreValue < 0 || scoreValue > 999999999999D)) {
             throw new IllegalArgumentException("Score must be between 0 and 999,999,999,999.");
         }
 
@@ -69,24 +69,35 @@ public class ScoreService
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
 
+        // ==========================================
+        // ENFORCE THE DYNAMIC CATEGORY LIMITS HERE
+        // ==========================================
+        if (category.getMinScore() != null && scoreValue < category.getMinScore()) {
+            throw new IllegalArgumentException("Score must be at least " + category.getMinScore() + " for this category.");
+        }
+        if (category.getMaxScore() != null && scoreValue > category.getMaxScore()) {
+            throw new IllegalArgumentException("Score cannot exceed " + category.getMaxScore() + " for this category.");
+        }
+        // ==========================================
+
         Score previousTopScore = getTopScoreForUser(category, user).orElse(null);
 
-        //JSONB tags merge
+        // JSONB tags merge
         Map<String, String> finalTags = new HashMap<>();
         if(scoreTags != null) finalTags.putAll(scoreTags);
         if(user.getDemographics() != null) finalTags.putAll(user.getDemographics());
         finalTags.put("age_months", String.valueOf(user.getAgeMonths()));
         finalTags.put("age_years", String.valueOf(user.getAgeYears()));
 
-        //Save the new score
-        Score newScore = new Score(category, user, scoreValue, finalTags, Boolean.TRUE.equals(isAnonymous));
+        // Save the new score
+        Score newScore = new Score(category, user, scoreValue.floatValue(), finalTags, Boolean.TRUE.equals(isAnonymous));
         scoreRepository.save(newScore);
         scoreRepository.flush();
 
-        //Find new top score after saving
+        // Find new top score after saving
         Score newTopScore = getTopScoreForUser(category, user).orElse(null);
 
-        //Update the global baseline
+        // Update the global baseline
         if(previousTopScore == null)
         {
             updateGlobalBaseline(category, newTopScore.getScore(), false);

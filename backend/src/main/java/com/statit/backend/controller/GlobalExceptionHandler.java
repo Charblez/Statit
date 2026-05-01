@@ -26,12 +26,10 @@ import java.util.Map;
 public class GlobalExceptionHandler
 {
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex)
-    {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", ex.getMessage()));
-    }
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+}
+    
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneral(Exception ex)

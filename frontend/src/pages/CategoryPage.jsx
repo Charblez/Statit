@@ -56,12 +56,12 @@ const buildCompetitionRankByScore = (entries) => {
   return rankByScore;
 };
 
-const isValidScore = (val) => {
+const isValidScore = (val, minLimit = MIN_SCORE, maxLimit = MAX_SCORE) => {
   if (val === '' || val === null || val === undefined) return false;
   if (/e/i.test(String(val))) return false;
   const num = parseFloat(val);
   if (isNaN(num)) return false;
-  if (num < MIN_SCORE || num > MAX_SCORE) return false;
+  if (num < minLimit || num > maxLimit) return false;
   return true;
 };
 
@@ -204,8 +204,12 @@ export default function CategoryPage({ currentUser }) {
     e.preventDefault();
     setSubmitError('');
 
-    if (!isValidScore(scoreValue)) {
-      setSubmitError('Score must be a plain number between 0 and 999,999,999,999. Scientific notation (e.g. 1e100) is not allowed.');
+    // Fallback to the globals if the category limits are null
+    const minLimit = category.minScore ?? MIN_SCORE;
+    const maxLimit = category.maxScore ?? MAX_SCORE;
+
+    if (!isValidScore(scoreValue, minLimit, maxLimit)) {
+      setSubmitError(`Score must be a plain number between ${minLimit} and ${maxLimit.toLocaleString()}. Scientific notation is not allowed.`);
       return;
     }
 
@@ -533,8 +537,8 @@ const formatNumber = (num) => {
                     className="input"
                     type="number"
                     step="any"
-                    min={MIN_SCORE}
-                    max={MAX_SCORE}
+                    min={category.minScore ?? MIN_SCORE}
+                    max={category.maxScore ?? MAX_SCORE}
                     value={scoreValue}
                     onChange={handleScoreChange}
                     placeholder="0"
@@ -543,7 +547,7 @@ const formatNumber = (num) => {
                   <span className="unit-label">{category.units}</span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>
-                  Valid range: 0 – 999,999,999,999
+                  Valid range: {category.minScore ?? MIN_SCORE} – {(category.maxScore ?? MAX_SCORE).toLocaleString()}
                 </p>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
