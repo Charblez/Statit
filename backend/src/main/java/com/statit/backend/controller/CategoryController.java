@@ -61,6 +61,8 @@ public class CategoryController
                 request.units(),
                 tags,
                 request.sortOrder(),
+                request.lowerLimit(),
+                request.upperLimit(),
                 foundingUser
         );
 
@@ -99,7 +101,7 @@ public class CategoryController
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{categoryId}")
+    @@PutMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCategory(@PathVariable UUID categoryId,
                                                            @RequestBody CategoryCreateRequest request)
     {
@@ -109,7 +111,9 @@ public class CategoryController
                 request.description(),
                 request.tags(),
                 request.units(),
-                request.sortOrder()
+                request.sortOrder(),
+                request.lowerLimit(),
+                request.upperLimit()
         );
 
         CategoryResponse response = CategoryResponse.fromCategory(updated, "Category updated successfully");
