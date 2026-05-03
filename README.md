@@ -68,9 +68,8 @@ com.statit.backend
 - Charles Bassani
 - Wilson Jimenez
 - Kenneth Chan
-
 - Derek Ly
-=======
+
 # Global Ranking System
 Global Ranking System is a platform that allows users to submit their personal metrics (e.g., height, weight, etc.) across various categories and see how they compare to the rest of the world. The system tracks individual user histories while dynamically maintaining global and community baselines, using statistical outlier rejection to ensure data integrity.
 
@@ -98,4 +97,3 @@ Global Ranking System is a platform that allows users to submit their personal m
 ### 5. Advanced Analytics (Not yet implemented)
 - **Distribution Shape Analaysis:** For internally tracked categories, the system will eventually calculate the shape of the data curve (skewness and kurtosis) to move beyond simple Gaussian distributions and better model real-world data clustering.
 - **Dataset Correlation:** Identifying statistical relationships between different categories
->>>>>>> origin/dev
