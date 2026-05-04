@@ -51,7 +51,7 @@ export default function ProfilePage({ currentUser, onLogout }) {
 
       <div className="profile-layout">
         <div className="panel">
-          <div className="panel-title">Account Info</div>
+          <div className="panel-title">Account Info{currentUser.admin ? ' (Admin)' : ''}</div>
           <div className="profile-info-item">
             <span className="profile-info-label">Username</span>
             <span>{currentUser.username}</span>
