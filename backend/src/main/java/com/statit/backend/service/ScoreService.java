@@ -57,6 +57,18 @@ public class ScoreService
     // Public Methods
     //------------------------------------------------------------------------------------------------
     @Transactional
+    public Score submitScore(UUID userId, UUID categoryId, Float scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
+    {
+        return submitScore(
+                userId,
+                categoryId,
+                scoreValue != null ? scoreValue.doubleValue() : null,
+                scoreTags,
+                isAnonymous
+        );
+    }
+
+    @Transactional
     public Score submitScore(UUID userId, UUID categoryId, Double scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
     {
         // Fetch the user and category
@@ -68,6 +80,7 @@ public class ScoreService
                 .orElseThrow(() -> new IllegalArgumentException("User not found."));
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        requireLiveCategory(category);
 
         // ENFORCE THE DYNAMIC CATEGORY LIMITS HERE
         if (category.getLowerLimit() != null && scoreValue < category.getLowerLimit()) {
@@ -150,6 +163,7 @@ public class ScoreService
     {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        requireLiveCategory(category);
 
         Pageable pageable = PageRequest.of(page, size);
 
@@ -167,6 +181,7 @@ public class ScoreService
     {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        requireLiveCategory(category);
 
         String tagsJson = serializeTagsToJson(tags);
         Pageable pageable = PageRequest.of(page, size);
@@ -291,6 +306,14 @@ public class ScoreService
             //Ascending: count users with a better (lower) top score + 1
             long betterCount = scoreRepository.countUsersWithBetterScoreAsc(category.getCategoryId(), scoreValue);
             return (int) betterCount + 1;
+        }
+    }
+
+    private void requireLiveCategory(Category category)
+    {
+        if(!category.getLive())
+        {
+            throw new IllegalArgumentException("Category is pending admin approval.");
         }
     }
 

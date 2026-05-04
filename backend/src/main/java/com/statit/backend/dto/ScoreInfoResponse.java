@@ -37,4 +37,44 @@ public record ScoreInfoResponse(
         Float baselineMean,
         Float baselineStdDev,
         Integer baselineSampleSize
-) {}
+) {
+    public ScoreInfoResponse(
+            UUID scoreId,
+            Float score,
+            String categoryName,
+            UUID categoryId,
+            String units,
+            String username,
+            UUID userId,
+            Boolean anonymous,
+            Map<String, String> tags,
+            LocalDateTime submittedAt,
+            int rank,
+            long totalParticipants,
+            Double percentile,
+            Double zScore,
+            Float baselineMean,
+            Float baselineStdDev,
+            Integer baselineSampleSize
+    ) {
+        this(
+                scoreId,
+                score != null ? score.doubleValue() : null,
+                categoryName,
+                categoryId,
+                units,
+                username,
+                userId,
+                anonymous,
+                tags,
+                submittedAt,
+                rank,
+                totalParticipants,
+                percentile,
+                zScore,
+                baselineMean,
+                baselineStdDev,
+                baselineSampleSize
+        );
+    }
+}

@@ -9,27 +9,41 @@ export default function ProfilePage({ currentUser, onLogout }) {
 
   useEffect(() => {
     if (!currentUser) return;
-    setLoading(true);
-    getUserScores(currentUser.username, page, 25)
-      .then((data) => {
-        const allScores = data || [];
+    let cancelled = false;
 
-        const seen = new Map();
-        allScores.forEach((s) => {
-          const existing = seen.get(s.categoryId);
-          if (!existing || new Date(s.submittedAt) > new Date(existing.submittedAt)) {
-            seen.set(s.categoryId, s);
-          }
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      getUserScores(currentUser.username, page, 25)
+        .then((data) => {
+          if (cancelled) return;
+          const allScores = data || [];
+
+          const seen = new Map();
+          allScores.forEach((s) => {
+            const existing = seen.get(s.categoryId);
+            if (!existing || new Date(s.submittedAt) > new Date(existing.submittedAt)) {
+              seen.set(s.categoryId, s);
+            }
+          });
+          const deduped = Array.from(seen.values()).sort(
+            (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
+          );
+
+          setScores(deduped);
+          setHasMore(allScores.length === 25);
+        })
+        .catch(() => {
+          if (!cancelled) setScores([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
         });
-        const deduped = Array.from(seen.values()).sort(
-          (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
-        );
+    });
 
-        setScores(deduped);
-        setHasMore(allScores.length === 25);
-      })
-      .catch(() => setScores([]))
-      .finally(() => setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser, page]);
 
   if (!currentUser) {

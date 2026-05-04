@@ -55,6 +55,7 @@ class LeaderboardControllerTest
         user = new User("alice", "a@x", "h", LocalDate.of(2000, 1, 1), null);
         TestUtils.setField(user, "userId", UUID.randomUUID());
         category = new Category("Cat", "d", "u", null, true, user);
+        category.setLive(true);
         categoryId = UUID.randomUUID();
         TestUtils.setField(category, "categoryId", categoryId);
     }
@@ -70,7 +71,7 @@ class LeaderboardControllerTest
     void getTopScoresReturnsLeaderboard()
     {
         Page<Score> page = new PageImpl<>(List.of(makeScore(10f)), PageRequest.of(0, 25), 1);
-        when(categoryService.getCategory(categoryId)).thenReturn(category);
+        when(categoryService.getLiveCategory(categoryId)).thenReturn(category);
         when(scoreService.getGlobalTopScores(eq(categoryId), anyInt(), anyInt())).thenReturn(page);
 
         ResponseEntity<LeaderboardResponse> response = leaderboardController.getTopScores(categoryId, 0, 25);
@@ -83,7 +84,7 @@ class LeaderboardControllerTest
     void getFilteredTopScoresReturnsLeaderboard()
     {
         Page<Score> page = new PageImpl<>(List.of(makeScore(5f)), PageRequest.of(0, 10), 1);
-        when(categoryService.getCategory(categoryId)).thenReturn(category);
+        when(categoryService.getLiveCategory(categoryId)).thenReturn(category);
         when(scoreService.getFilteredTopScores(eq(categoryId), any(), anyInt(), anyInt())).thenReturn(page);
 
         HashMap<String, String> tags = new HashMap<>();
@@ -104,7 +105,7 @@ class LeaderboardControllerTest
                 5f, 0f, 1f, null, null, null, 5, "src");
         TestUtils.setField(baseline, "baselineId", UUID.randomUUID());
 
-        when(categoryService.getCategory(categoryId)).thenReturn(category);
+        when(categoryService.getLiveCategory(categoryId)).thenReturn(category);
         when(scoreService.getGlobalTopScores(eq(categoryId), anyInt(), anyInt())).thenReturn(page);
         when(globalBaselineRepository.findAllByCategory(category)).thenReturn(Arrays.asList(baseline));
 
@@ -124,7 +125,7 @@ class LeaderboardControllerTest
                 5f, 0f, 1f, null, null, null, 5, "src");
         TestUtils.setField(baseline, "baselineId", UUID.randomUUID());
 
-        when(categoryService.getCategory(categoryId)).thenReturn(category);
+        when(categoryService.getLiveCategory(categoryId)).thenReturn(category);
         when(globalBaselineRepository.findAllByCategory(category)).thenReturn(Arrays.asList(baseline));
 
         ResponseEntity<List<GlobalBaselineResponse>> response =

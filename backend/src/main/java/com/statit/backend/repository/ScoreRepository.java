@@ -94,6 +94,11 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
     long countUsersWithBetterScoreDesc(@Param("categoryId") UUID categoryId,
                                        @Param("scoreValue") Double scoreValue);
 
+    default long countUsersWithBetterScoreDesc(UUID categoryId, Float scoreValue)
+    {
+        return countUsersWithBetterScoreDesc(categoryId, scoreValue != null ? scoreValue.doubleValue() : null);
+    }
+
     @Query(value = "SELECT COUNT(*) FROM (" +
             "SELECT DISTINCT ON (s.user_id) s.score_value FROM scores s " +
             "WHERE s.category_id = :categoryId AND s.rejected = false " +
@@ -102,6 +107,11 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             nativeQuery = true)
     long countUsersWithBetterScoreAsc(@Param("categoryId") UUID categoryId,
                                       @Param("scoreValue") Double scoreValue);
+
+    default long countUsersWithBetterScoreAsc(UUID categoryId, Float scoreValue)
+    {
+        return countUsersWithBetterScoreAsc(categoryId, scoreValue != null ? scoreValue.doubleValue() : null);
+    }
 
     //------------------------------------------------------------------------------------------------
     // Filtered Leaderboards

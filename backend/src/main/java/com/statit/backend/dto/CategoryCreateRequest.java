@@ -28,4 +28,13 @@ public record CategoryCreateRequest(String name,
                                     @JsonProperty("lower_limit") Double lowerLimit,
                                     @JsonProperty("upper_limit") Double upperLimit)
 {
+    public CategoryCreateRequest(String name,
+                                 String description,
+                                 String units,
+                                 List<String> tags,
+                                 Boolean sortOrder,
+                                 String foundingUsername)
+    {
+        this(name, description, units, tags, sortOrder, foundingUsername, 0.0, 100.0);
+    }
 }

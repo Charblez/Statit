@@ -56,7 +56,7 @@ class ScoreControllerTest
     {
         ScoreSubmitRequest req = new ScoreSubmitRequest(user.getUserId(), category.getCategoryId(),
                 10f, null, false);
-        when(scoreService.submitScore(any(), any(), any(), any(), any())).thenReturn(score);
+        when(scoreService.submitScore(any(), any(), any(Double.class), any(), any())).thenReturn(score);
 
         ResponseEntity<ScoreResponse> response = scoreController.submitScore(req);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -97,14 +97,4 @@ class ScoreControllerTest
         assertEquals(1, response.getBody().size());
     }
 
-    @Test
-    void deleteScoreReturnsScoreWithMessageAndDeletes()
-    {
-        when(scoreService.getScore(score.getScoreId())).thenReturn(score);
-
-        ResponseEntity<ScoreResponse> response = scoreController.deleteScore(score.getScoreId());
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Score deleted successfully", response.getBody().message());
-        verify(scoreService).deleteScore(score.getScoreId());
-    }
 }

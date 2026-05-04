@@ -35,6 +35,15 @@ public class Score
 
     public Score(Category category,
                  User user,
+                 Float score,
+                 Map<String, String> tags,
+                 Boolean anonymous)
+    {
+        this(category, user, score != null ? score.doubleValue() : null, tags, anonymous);
+    }
+
+    public Score(Category category,
+                 User user,
                  Double score,
                  Map<String, String> tags,
                  Boolean anonymous)
@@ -50,6 +59,16 @@ public class Score
     //------------------------------------------------------------------------------------------------
     // Public Functions
     //------------------------------------------------------------------------------------------------
+    public void update(Category category,
+                       User user,
+                       Float score,
+                       Map<String, String> tags,
+                       Boolean anonymous,
+                       Boolean rejected)
+    {
+        update(category, user, score != null ? score.doubleValue() : null, tags, anonymous, rejected);
+    }
+
     public void update(Category category,
                        User user,
                        Double score,

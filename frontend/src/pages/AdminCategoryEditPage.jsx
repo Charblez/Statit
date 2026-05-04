@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  getCategory,
+  adminGetCategory,
   adminUpdateCategory,
   adminApproveCategory,
   adminDeleteCategory,
@@ -27,7 +27,7 @@ export default function AdminCategoryEditPage({ currentUser }) {
   useEffect(() => {
     if (!currentUser?.admin) return;
     setLoading(true);
-    getCategory(categoryId)
+    adminGetCategory(categoryId)
       .then((cat) => {
         setCategory(cat);
         setName(cat.name || '');

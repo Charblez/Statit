@@ -66,14 +66,14 @@ public class CategoryController
                 foundingUser
         );
 
-        CategoryResponse response = CategoryResponse.fromCategory(category, "Category created successfully");
+        CategoryResponse response = CategoryResponse.fromCategory(category, "Category submitted for admin approval");
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> getCategory(@PathVariable UUID categoryId)
     {
-        Category category = categoryService.getCategory(categoryId);
+        Category category = categoryService.getLiveCategory(categoryId);
         CategoryResponse response = CategoryResponse.fromCategory(category, null);
         return ResponseEntity.ok(response);
     }

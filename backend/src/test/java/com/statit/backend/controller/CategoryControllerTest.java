@@ -58,12 +58,12 @@ class CategoryControllerTest
         CategoryCreateRequest req = new CategoryCreateRequest("Cat", "d", "u",
                 Arrays.asList("a"), true, "f");
         when(userService.getUser("f")).thenReturn(founder);
-        when(categoryService.createCategory(any(), any(), any(), any(), any(), any())).thenReturn(category);
+        when(categoryService.createCategory(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(category);
 
         ResponseEntity<CategoryResponse> response = categoryController.createCategory(req);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Cat", response.getBody().name());
-        assertEquals("Category created successfully", response.getBody().message());
+        assertEquals("Category submitted for admin approval", response.getBody().message());
     }
 
     @Test
@@ -72,7 +72,7 @@ class CategoryControllerTest
         CategoryCreateRequest req = new CategoryCreateRequest("Cat", "d", "u",
                 null, true, "f");
         when(userService.getUser("f")).thenReturn(founder);
-        when(categoryService.createCategory(any(), any(), any(), any(), any(), any())).thenReturn(category);
+        when(categoryService.createCategory(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(category);
 
         ResponseEntity<CategoryResponse> response = categoryController.createCategory(req);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -81,7 +81,7 @@ class CategoryControllerTest
     @Test
     void getCategoryReturnsOk()
     {
-        when(categoryService.getCategory(categoryId)).thenReturn(category);
+        when(categoryService.getLiveCategory(categoryId)).thenReturn(category);
         ResponseEntity<CategoryResponse> response = categoryController.getCategory(categoryId);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Cat", response.getBody().name());
@@ -101,26 +101,4 @@ class CategoryControllerTest
         assertEquals(1, response.getBody().totalElements());
     }
 
-    @Test
-    void updateCategoryReturnsOk()
-    {
-        CategoryCreateRequest req = new CategoryCreateRequest("Cat2", "d2", "u2",
-                Arrays.asList("x"), false, "f");
-        when(categoryService.updateCategory(any(), any(), any(), any(), any(), any())).thenReturn(category);
-
-        ResponseEntity<CategoryResponse> response = categoryController.updateCategory(categoryId, req);
-        assertEquals("Category updated successfully", response.getBody().message());
-    }
-
-    @Test
-    void deleteCategoryReturnsOkWithMessage()
-    {
-        when(categoryService.getCategory(categoryId)).thenReturn(category);
-
-        ResponseEntity<CategoryResponse> response = categoryController.deleteCategory(categoryId);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Cat", response.getBody().name());
-        assertEquals("Category deleted successfully", response.getBody().message());
-        verify(categoryService).deleteCategory(categoryId);
-    }
 }

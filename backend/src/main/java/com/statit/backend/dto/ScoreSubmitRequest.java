@@ -26,4 +26,12 @@ public record ScoreSubmitRequest(@JsonProperty("user_id") UUID userId,
                                  Map<String, String> tags,
                                  Boolean anonymous)
 {
+    public ScoreSubmitRequest(UUID userId,
+                              UUID categoryId,
+                              Float score,
+                              Map<String, String> tags,
+                              Boolean anonymous)
+    {
+        this(userId, categoryId, score != null ? score.doubleValue() : null, tags, anonymous);
+    }
 }

@@ -16,10 +16,13 @@ const categoryMatchesSearch = (categoryName, query) => {
   return true;
 };
 
+const onlyPublicCategories = (categories) =>
+  (Array.isArray(categories) ? categories : []).filter((category) => category.live !== false);
+
 export default function HomePage() {
   const [categories, setCategories] = useState(() => {
     const cached = sessionStorage.getItem('categoriesCache');
-    return cached ? JSON.parse(cached) : [];
+    return cached ? onlyPublicCategories(JSON.parse(cached)) : [];
   });
   const [loading, setLoading] = useState(() => !sessionStorage.getItem('categoriesCache'));
   const [error, setError] = useState('');
@@ -33,7 +36,7 @@ export default function HomePage() {
   useEffect(() => {
     getCategories(0, 100)
       .then((data) => {
-        const list = data.categories || [];
+        const list = onlyPublicCategories(data.categories);
         setCategories(list);
         sessionStorage.setItem('categoriesCache', JSON.stringify(list));
       })

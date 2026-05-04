@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import CategoryPage from './pages/CategoryPage';
@@ -7,7 +7,10 @@ import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminCategoryEditPage from './pages/AdminCategoryEditPage';
-import { getCategories } from './api';
+import { getCategories, getUser } from './api';
+
+const onlyPublicCategories = (categories) =>
+  (Array.isArray(categories) ? categories : []).filter((category) => category.live !== false);
 
 function Header({ currentUser, darkMode, onToggleDark }) {
   const location = useLocation();
@@ -15,7 +18,7 @@ function Header({ currentUser, darkMode, onToggleDark }) {
   const [searchValue, setSearchValue] = useState('');
   const [categories, setCategories] = useState(() => {
     const cached = sessionStorage.getItem('categoriesCache');
-    return cached ? JSON.parse(cached) : [];
+    return cached ? onlyPublicCategories(JSON.parse(cached)) : [];
   });
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -24,7 +27,7 @@ function Header({ currentUser, darkMode, onToggleDark }) {
 
     getCategories(0, 100)
       .then((data) => {
-        const list = data.categories || [];
+        const list = onlyPublicCategories(data.categories);
         setCategories(list);
         sessionStorage.setItem('categoriesCache', JSON.stringify(list));
       })
@@ -36,7 +39,14 @@ function Header({ currentUser, darkMode, onToggleDark }) {
   useEffect(() => {
     if (location.pathname !== '/') return;
     const searchParams = new URLSearchParams(location.search);
-    setSearchValue(searchParams.get('search') || '');
+    const nextSearchValue = searchParams.get('search') || '';
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setSearchValue(nextSearchValue);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, location.search]);
 
   const isActive = (path) => {
@@ -184,16 +194,51 @@ function AppContent() {
     localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
-  const handleLogin = (userData) => {
+  const persistCurrentUser = useCallback((userData) => {
     setCurrentUser(userData);
     if (userData) {
       localStorage.setItem('currentUser', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('currentUser');
     }
+  }, []);
+
+  const refreshCurrentUserByUsername = useCallback(async (username) => {
+    if (!username) return;
+
+    try {
+      const freshUser = await getUser(username);
+      persistCurrentUser(freshUser);
+    } catch {
+      persistCurrentUser(null);
+    }
+  }, [persistCurrentUser]);
+
+  const currentUsername = currentUser?.username;
+
+  useEffect(() => {
+    if (!currentUsername) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) refreshCurrentUserByUsername(currentUsername);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUsername, refreshCurrentUserByUsername]);
+
+  useEffect(() => {
+    const handleFocus = () => refreshCurrentUserByUsername(currentUsername);
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [currentUsername, refreshCurrentUserByUsername]);
+
+  const handleLogin = (userData) => {
+    persistCurrentUser(userData);
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+    persistCurrentUser(null);
     navigate('/login');
   };
 

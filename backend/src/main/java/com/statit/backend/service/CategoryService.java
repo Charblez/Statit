@@ -85,13 +85,7 @@ public class CategoryService
                 upperLimit
         );
 
-        //Re-assign to ensure get UUID from database
-        category = categoryRepository.save(category);
-
-        //Generate the baseline for the category
-        generateAndSaveGlobalBaseline(category);
-
-        return category;
+        return categoryRepository.save(category);
     }
 
     @Transactional
@@ -125,6 +119,16 @@ public class CategoryService
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
     }
 
+    public Category getLiveCategory(UUID categoryId)
+    {
+        Category category = getCategory(categoryId);
+        if(!category.getLive())
+        {
+            throw new IllegalArgumentException("Category is pending admin approval.");
+        }
+        return category;
+    }
+
     public Page<Category> getAllCategories(Pageable pageable)
     {
         return categoryRepository.findAllByLiveTrueOrderByCategoryNameAsc(pageable);
@@ -141,7 +145,9 @@ public class CategoryService
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
         category.setLive(true);
-        return categoryRepository.save(category);
+        Category saved = categoryRepository.save(category);
+        ensureGlobalBaseline(saved);
+        return saved;
     }
 
     @Transactional
@@ -164,6 +170,12 @@ public class CategoryService
     //------------------------------------------------------------------------------------------------
     // Private Methods
     //------------------------------------------------------------------------------------------------
+    private void ensureGlobalBaseline(Category category)
+    {
+        if(globalBaselineRepository.findByCategory(category).isPresent()) return;
+        generateAndSaveGlobalBaseline(category);
+    }
+
     private void generateAndSaveGlobalBaseline(Category category)
     {
         GlobalBaseline baseline = new GlobalBaseline(

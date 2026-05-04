@@ -9,6 +9,7 @@ export default function CreateCategoryPage({ currentUser }) {
   const [tags, setTags] = useState('');
   const [sortOrder, setSortOrder] = useState(true);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [lowerLimit, setLowerLimit] = useState('');
@@ -17,6 +18,7 @@ export default function CreateCategoryPage({ currentUser }) {
 const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     setLoading(true);
 
     try {
@@ -44,7 +46,7 @@ const handleSubmit = async (e) => {
         return; 
       }
 
-      await createCategory({
+      const created = await createCategory({
         name,
         description: description || null,
         units,
@@ -55,7 +57,26 @@ const handleSubmit = async (e) => {
         upper_limit: parseFloat(upperLimit), // <-- Changed
       });
 
-      navigate('/');
+      sessionStorage.removeItem('categoriesCache');
+
+      if (created.live) {
+        navigate(`/category/${created.categoryId}`);
+        return;
+      }
+
+      if (currentUser.admin) {
+        navigate('/admin');
+        return;
+      }
+
+      setMessage(created.message || 'Category submitted for admin approval.');
+      setName('');
+      setDescription('');
+      setUnits('');
+      setTags('');
+      setLowerLimit('');
+      setUpperLimit('');
+      setSortOrder(true);
     } catch (err) {
       setError(err.message || 'Failed to create category');
     } finally {
@@ -80,6 +101,11 @@ const handleSubmit = async (e) => {
         <h1 className="page-title">Create Category</h1>
 
         {error && <div className="error-banner">{error}</div>}
+        {message && (
+          <div className="error-banner" style={{ background: 'var(--success, #1e7e34)' }}>
+            {message}
+          </div>
+        )}
 
         <div className="panel">
           <form onSubmit={handleSubmit}>
@@ -175,7 +201,7 @@ const handleSubmit = async (e) => {
 
 
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Category'}
+              {loading ? 'Submitting...' : 'Submit for Approval'}
             </button>
           </form>
         </div>

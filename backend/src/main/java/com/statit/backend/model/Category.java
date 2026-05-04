@@ -38,6 +38,16 @@ public class Category
                     String units,
                     List<String> tags,
                     Boolean sortOrder,
+                    User foundingUser)
+    {
+        this(categoryName, description, units, tags, sortOrder, foundingUser, 0.0, 100.0);
+    }
+
+    public Category(String categoryName,
+                    String description,
+                    String units,
+                    List<String> tags,
+                    Boolean sortOrder,
                     User foundingUser,
                     Double lowerLimit,
                     Double upperLimit)
@@ -55,6 +65,15 @@ public class Category
     //------------------------------------------------------------------------------------------------
     // Public Methods
     //------------------------------------------------------------------------------------------------
+    public void update(String categoryName,
+                       String description,
+                       String units,
+                       List<String> tags,
+                       Boolean sortOrder)
+    {
+        update(categoryName, description, units, tags, sortOrder, lowerLimit, upperLimit);
+    }
+
     public void update(String categoryName,
                        String description,
                        String units,
@@ -134,11 +153,11 @@ public class Category
     @Column(name = "sort_order", nullable = false)
     private Boolean sortOrder;
 
-    @Column(name = "lower_limit", nullable = false)
-    private Double lowerLimit;
+    @Column(name = "lower_limit", nullable = false, columnDefinition = "double precision default 0.0")
+    private Double lowerLimit = 0.0;
 
-    @Column(name = "upper_limit", nullable = false)
-    private Double upperLimit;
+    @Column(name = "upper_limit", nullable = false, columnDefinition = "double precision default 100.0")
+    private Double upperLimit = 100.0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "founding_user_id", nullable = false)

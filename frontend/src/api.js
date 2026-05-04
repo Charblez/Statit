@@ -1,35 +1,42 @@
-//const BASE = '/api/v1';
-const BASE = 'https://statit-backend.bluemeadow-174af2a3.eastus.azurecontainerapps.io/api/v1';
+const BASE = import.meta.env.VITE_API_BASE_URL
+  || 'https://statit-backend.bluemeadow-174af2a3.eastus.azurecontainerapps.io/api/v1';
 
-function getAdminUsername() {
+function getCurrentUsername() {
   try {
     const saved = localStorage.getItem('currentUser');
     if (!saved) return null;
     const parsed = JSON.parse(saved);
-    return parsed && parsed.admin ? parsed.username : null;
+    return parsed?.username || null;
   } catch {
     return null;
   }
 }
 
 function adminHeaders() {
-  const username = getAdminUsername();
+  const username = getCurrentUsername();
   return username ? { 'X-Admin-Username': username } : {};
 }
 
 async function request(path, options = {}) {
+  const { headers, ...fetchOptions } = options;
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
+    ...fetchOptions,
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
   if (!res.ok) {
     let message = `Request failed: ${res.status}`;
     try {
-      const body = await res.json();
-      if (body.error) message = body.error;
-      else if (body.message) message = body.message;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const body = await res.json();
+        if (body.error) message = body.error;
+        else if (body.message) message = body.message;
+      } else {
+        const text = await res.text();
+        if (text) message = text;
+      }
     } catch {
-      // response wasn't JSON, use default message
+      // Use the default message when the response cannot be parsed.
     }
     throw new Error(message);
   }
@@ -94,6 +101,12 @@ export function createCategory({ name, description, units, tags, sort_order, fou
 
 export function getPendingCategories(page = 0, size = 50) {
   return request(`/admin/categories/pending?page=${page}&size=${size}`, {
+    headers: adminHeaders(),
+  });
+}
+
+export function adminGetCategory(categoryId) {
+  return request(`/admin/categories/${categoryId}`, {
     headers: adminHeaders(),
   });
 }

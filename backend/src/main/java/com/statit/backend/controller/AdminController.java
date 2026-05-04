@@ -64,6 +64,15 @@ public class AdminController
         ));
     }
 
+    @GetMapping("/categories/{categoryId}")
+    public ResponseEntity<CategoryResponse> getCategory(@RequestHeader("X-Admin-Username") String adminUsername,
+                                                        @PathVariable UUID categoryId)
+    {
+        adminAuthService.requireAdmin(adminUsername);
+        Category category = categoryService.getCategory(categoryId);
+        return ResponseEntity.ok(CategoryResponse.fromCategory(category, null));
+    }
+
     @PutMapping("/categories/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCategory(@RequestHeader("X-Admin-Username") String adminUsername,
                                                            @PathVariable UUID categoryId,
