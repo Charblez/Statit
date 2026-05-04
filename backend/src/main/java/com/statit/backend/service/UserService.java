@@ -125,6 +125,28 @@ public class UserService
     }
 
     @Transactional
+    public User grantAdmin(String username)
+    {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        user.setAdmin(true);
+        return userRepository.save(user);
+    }
+
+    public List<User> searchUsers(String query)
+    {
+        if(query == null || query.isBlank()) return userRepository.findAll();
+        String needle = query.toLowerCase();
+        List<User> all = userRepository.findAll();
+        List<User> matches = new ArrayList<>();
+        for(User u : all)
+        {
+            if(u.getUsername() != null && u.getUsername().toLowerCase().contains(needle)) matches.add(u);
+        }
+        return matches;
+    }
+
+    @Transactional
     public void deleteUser(UUID userId)
     {
         //Get the user to delete

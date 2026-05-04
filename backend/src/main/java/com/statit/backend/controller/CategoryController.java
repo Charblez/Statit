@@ -101,39 +101,6 @@ public class CategoryController
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{categoryId}")
-    public ResponseEntity<CategoryResponse> updateCategory(@PathVariable UUID categoryId,
-                                                           @RequestBody CategoryCreateRequest request)
-    {
-        Category updated = categoryService.updateCategory(
-                categoryId,
-                request.name(),
-                request.description(),
-                request.tags(),
-                request.units(),
-                request.sortOrder(),
-                request.lowerLimit(),
-                request.upperLimit()
-        );
-
-        CategoryResponse response = CategoryResponse.fromCategory(updated, "Category updated successfully");
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{categoryId}")
-    public ResponseEntity<CategoryResponse> deleteCategory(@PathVariable UUID categoryId)
-    {
-        Category category = categoryService.getCategory(categoryId);
-        String name = category.getName();
-        categoryService.deleteCategory(categoryId);
-
-        // Added two extra nulls for lowerLimit and upperLimit
-        return ResponseEntity.ok(new CategoryResponse(
-                categoryId, name, null, null, null, null, null, null, null,
-                "Category deleted successfully"
-        ));
-    }
-
     //------------------------------------------------------------------------------------------------
     // Private Variables
     //------------------------------------------------------------------------------------------------

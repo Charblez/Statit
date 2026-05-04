@@ -1,4 +1,5 @@
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/BackendApplication.java
+/home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/controller/AdminController.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/controller/CategoryController.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/controller/GlobalExceptionHandler.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/controller/LeaderboardController.java
@@ -25,6 +26,7 @@
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/repository/GlobalBaselineRepository.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/repository/ScoreRepository.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/repository/UserRepository.java
+/home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/service/AdminAuthService.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/service/CategoryService.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/service/ScoreService.java
 /home/charl/School/SoftProj/Global-Ranking-System/backend/src/main/java/com/statit/backend/service/UserService.java

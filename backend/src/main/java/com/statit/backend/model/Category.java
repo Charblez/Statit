@@ -100,6 +100,7 @@ public class Category
     public Double getLowerLimit()                  { return lowerLimit; }
     public Double getUpperLimit()                  { return upperLimit; }
     public LocalDateTime getCreatedAt()            { return createdAt; }
+    public Boolean getLive()                       { return live != null && live; }
 
     //Setters
     public void setName(String name)                { this.categoryName = name; }
@@ -107,6 +108,7 @@ public class Category
     public void setTags(List<String> tags)          { this.tags = tags; }
     public void setLowerLimit(Double lowerLimit)    { this.lowerLimit = lowerLimit; }
     public void setUpperLimit(Double upperLimit)    { this.upperLimit = upperLimit; }
+    public void setLive(Boolean live)               { this.live = live != null && live; }
 
     //------------------------------------------------------------------------------------------------
     // Private Variables
@@ -145,4 +147,7 @@ public class Category
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "live", nullable = false, columnDefinition = "boolean default false")
+    private Boolean live = false;
 };

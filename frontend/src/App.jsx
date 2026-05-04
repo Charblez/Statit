@@ -5,6 +5,8 @@ import CategoryPage from './pages/CategoryPage';
 import CreateCategoryPage from './pages/CreateCategoryPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminCategoryEditPage from './pages/AdminCategoryEditPage';
 import { getCategories } from './api';
 
 function Header({ currentUser, darkMode, onToggleDark }) {
@@ -148,6 +150,12 @@ function Header({ currentUser, darkMode, onToggleDark }) {
           </Link>
         )}
 
+        {currentUser?.admin && (
+          <Link to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>
+            Admin
+          </Link>
+        )}
+
         {!currentUser && (
           <Link to="/login" className={`nav-link ${isActive('/login') || isActive('/signup') ? 'active' : ''}`}>
             Login
@@ -178,6 +186,9 @@ function AppContent() {
 
   const handleLogin = (userData) => {
     setCurrentUser(userData);
+    if (userData) {
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+    }
   };
 
   const handleLogout = () => {
@@ -197,6 +208,8 @@ function AppContent() {
         <Route path="/category/:categoryId" element={<CategoryPage currentUser={currentUser} />} />
         <Route path="/create" element={currentUser ? <CreateCategoryPage currentUser={currentUser} /> : <Navigate to="/login" />} />
         <Route path="/profile" element={currentUser ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/admin" element={currentUser?.admin ? <AdminDashboardPage currentUser={currentUser} /> : <Navigate to="/" />} />
+        <Route path="/admin/category/:categoryId" element={currentUser?.admin ? <AdminCategoryEditPage currentUser={currentUser} /> : <Navigate to="/" />} />
         <Route path="/login" element={currentUser ? <Navigate to="/" /> : <AuthPage mode="login" onLogin={handleLogin} />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/" /> : <AuthPage mode="signup" onLogin={handleLogin} />} />
       </Routes>

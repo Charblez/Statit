@@ -60,7 +60,7 @@ public class ScoreService
     public Score submitScore(UUID userId, UUID categoryId, Double scoreValue, Map<String, String> scoreTags, Boolean isAnonymous)
     {
         // Fetch the user and category
-        if (scoreValue != null && (scoreValue < -99999999999 || scoreValue > 999999999999D)) {
+        if (scoreValue != null && (scoreValue < -99999999999D || scoreValue > 999999999999D)) {
     throw new IllegalArgumentException("Score must be between -999,999,999,999 and 999,999,999,999.");
 }
 
@@ -87,7 +87,7 @@ public class ScoreService
         finalTags.put("age_years", String.valueOf(user.getAgeYears()));
 
         // Save the new score
-        Score newScore = new Score(category, user, scoreValue.floatValue(), finalTags, Boolean.TRUE.equals(isAnonymous));
+        Score newScore = new Score(category, user, scoreValue, finalTags, Boolean.TRUE.equals(isAnonymous));
         scoreRepository.save(newScore);
         scoreRepository.flush();
 
@@ -239,7 +239,7 @@ public class ScoreService
             else if(baselineSampleSize != null && baselineSampleSize > 0)
             {
                 //If stddev is 0, everyone has the same score
-                if(baselineMean != null && Float.compare(score.getScore(), baselineMean) == 0)
+                if(baselineMean != null && Double.compare(score.getScore(), baselineMean.doubleValue()) == 0)
                 {
                     percentile = 50.0;
                 }
@@ -278,7 +278,7 @@ public class ScoreService
     //------------------------------------------------------------------------------------------------
     // Private Methods
     //------------------------------------------------------------------------------------------------
-    private int computeRank(Category category, Float scoreValue)
+    private int computeRank(Category category, Double scoreValue)
     {
         if(category.getSortOrder())
         {
@@ -294,7 +294,7 @@ public class ScoreService
         }
     }
 
-    private void updateGlobalBaseline(Category category, Float score, Boolean removal)
+    private void updateGlobalBaseline(Category category, Double scoreD, Boolean removal)
     {
         //Fetch existing baseline
         GlobalBaseline baseline = globalBaselineRepository.findByCategory(category)
@@ -305,6 +305,8 @@ public class ScoreService
 
         //Fail if removing and no entries
         if(oldN == 0 && removal) return;
+
+        float score = scoreD == null ? 0.0f : scoreD.floatValue();
 
         Float oldMean = baseline.getMean();
         if(oldMean == null) oldMean = 0.0f;

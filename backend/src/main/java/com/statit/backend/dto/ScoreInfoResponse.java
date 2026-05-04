@@ -21,7 +21,7 @@ import java.util.UUID;
 //----------------------------------------------------------------------------------------------------
 public record ScoreInfoResponse(
         UUID scoreId,
-        Float score,
+        Double score,
         String categoryName,
         UUID categoryId,
         String units,

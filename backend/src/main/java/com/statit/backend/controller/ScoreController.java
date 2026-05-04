@@ -89,15 +89,6 @@ public class ScoreController
         return ResponseEntity.ok(responses);
     }
 
-    @DeleteMapping("/{scoreId}")
-    public ResponseEntity<ScoreResponse> deleteScore(@PathVariable UUID scoreId)
-    {
-        Score score = scoreService.getScore(scoreId);
-        ScoreResponse response = ScoreResponse.fromScore(score, "Score deleted successfully");
-        scoreService.deleteScore(scoreId);
-        return ResponseEntity.ok(response);
-    }
-
     //------------------------------------------------------------------------------------------------
     // Private Variables
     //------------------------------------------------------------------------------------------------

@@ -36,4 +36,8 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>
     // Paginated Category Queries
     //------------------------------------------------------------------------------------------------
     Page<Category> findAllByOrderByCategoryNameAsc(Pageable pageable);
+
+    Page<Category> findAllByLiveTrueOrderByCategoryNameAsc(Pageable pageable);
+
+    Page<Category> findAllByLiveFalseOrderByCreatedAtAsc(Pageable pageable);
 }

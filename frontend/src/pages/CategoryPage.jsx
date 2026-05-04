@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { getCategory, getTopScores, getFilteredScores, getBaselines, submitScore } from '../api';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  getCategory,
+  getTopScores,
+  getFilteredScores,
+  getBaselines,
+  submitScore,
+  adminDeleteCategory,
+  adminDeleteScore,
+} from '../api';
 
 const MAX_SCORE = 999999999999;
 const MIN_SCORE = 0;
@@ -67,6 +75,10 @@ const isValidScore = (val, minLimit = MIN_SCORE, maxLimit = MAX_SCORE) => {
 
 export default function CategoryPage({ currentUser }) {
   const { categoryId } = useParams();
+  const navigate = useNavigate();
+  const isAdmin = Boolean(currentUser?.admin);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [adminError, setAdminError] = useState('');
   const [category, setCategory] = useState(null);
   const [scores, setScores] = useState([]);
   const [baselines, setBaselines] = useState([]);
@@ -312,9 +324,57 @@ const formatNumber = (num) => {
   const rankByScore = buildCompetitionRankByScore(rankSource);
   const pageStartRank = page * 25 + 1;
 
+  const handleAdminDeleteCategory = async () => {
+    if (!window.confirm(`Delete category "${category.name}" and all its scores?`)) return;
+    try {
+      await adminDeleteCategory(categoryId);
+      sessionStorage.removeItem('categoriesCache');
+      navigate('/');
+    } catch (err) {
+      setAdminError(err.message);
+    }
+  };
+
+  const handleAdminDeleteScore = async (scoreId) => {
+    if (!window.confirm('Delete this score?')) return;
+    try {
+      await adminDeleteScore(scoreId);
+      await Promise.all([loadScores(page), loadBaselines(), loadChartScores()]);
+    } catch (err) {
+      setAdminError(err.message);
+    }
+  };
+
   return (
     <div className="page">
-      <h1 className="page-title">{category.name}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <h1 className="page-title" style={{ marginBottom: 0 }}>{category.name}</h1>
+        {isAdmin && (
+          <div style={{ position: 'relative' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setAdminMenuOpen((o) => !o)}>
+              Options &#9662;
+            </button>
+            {adminMenuOpen && (
+              <div className="panel" style={{ position: 'absolute', right: 0, top: '110%', zIndex: 10, padding: 8, minWidth: 200 }}>
+                <button
+                  className="btn btn-ghost btn-sm btn-full"
+                  onClick={() => { setAdminMenuOpen(false); navigate(`/admin/category/${categoryId}`); }}
+                >
+                  Edit properties
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm btn-full"
+                  style={{ color: 'crimson' }}
+                  onClick={() => { setAdminMenuOpen(false); handleAdminDeleteCategory(); }}
+                >
+                  Delete category
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {adminError && <div className="error-banner" style={{ marginTop: 12 }}>{adminError}</div>}
       {category.description && (
   <p 
     style={{ 
@@ -353,6 +413,7 @@ const formatNumber = (num) => {
                       <th>Player</th>
                       <th>Score ({category.units})</th>
                       <th>Date</th>
+                      {isAdmin && <th></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -373,6 +434,17 @@ const formatNumber = (num) => {
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             {entry.submittedAt ? new Date(entry.submittedAt).toLocaleDateString() : '-'}
                           </td>
+                          {isAdmin && (
+                            <td>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ color: 'crimson' }}
+                                onClick={() => handleAdminDeleteScore(entry.scoreId)}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

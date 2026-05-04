@@ -85,6 +85,7 @@ public class User
     public LocalDateTime getCreatedAt()          { return createdAt; }
     public LocalDate getBirthday()               { return birthday; }
     public Map<String, String> getDemographics() { return demographics; }
+    public Boolean getAdmin()                    { return admin != null && admin; }
 
     //Setters
     public void setUsername(String username)                        { this.username = username; }
@@ -92,6 +93,7 @@ public class User
     public void setPasswordHash(String passwordHash)                { this.passwordHash = passwordHash; }
     public void setBirthday(LocalDate birthday)                     { this.birthday = birthday; }
     public void setDemographics(Map<String, String> demographics)   { this.demographics = demographics; }
+    public void setAdmin(Boolean admin)                             { this.admin = admin != null && admin; }
 
     //------------------------------------------------------------------------------------------------
     // Private Variables
@@ -121,4 +123,7 @@ public class User
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "demographics", columnDefinition = "jsonb")
     private Map<String, String> demographics = new HashMap<>();
+
+    @Column(name = "is_admin", nullable = false, columnDefinition = "boolean default false")
+    private Boolean admin = false;
 };

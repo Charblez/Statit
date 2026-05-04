@@ -127,7 +127,21 @@ public class CategoryService
 
     public Page<Category> getAllCategories(Pageable pageable)
     {
-        return categoryRepository.findAllByOrderByCategoryNameAsc(pageable);
+        return categoryRepository.findAllByLiveTrueOrderByCategoryNameAsc(pageable);
+    }
+
+    public Page<Category> getPendingCategories(Pageable pageable)
+    {
+        return categoryRepository.findAllByLiveFalseOrderByCreatedAtAsc(pageable);
+    }
+
+    @Transactional
+    public Category approveCategory(UUID categoryId)
+    {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        category.setLive(true);
+        return categoryRepository.save(category);
     }
 
     @Transactional

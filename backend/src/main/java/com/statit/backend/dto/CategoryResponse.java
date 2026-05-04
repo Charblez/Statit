@@ -30,6 +30,7 @@ public record CategoryResponse(UUID categoryId,
                                Double lowerLimit,
                                Double upperLimit,
                                LocalDateTime createdAt,
+                               Boolean live,
                                String message)
 {
     public static CategoryResponse fromCategory(Category category, String message)
@@ -44,6 +45,7 @@ public record CategoryResponse(UUID categoryId,
                 category.getLowerLimit(),
                 category.getUpperLimit(),
                 category.getCreatedAt(),
+                category.getLive(),
                 message
         );
     }

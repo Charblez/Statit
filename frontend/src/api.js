@@ -1,6 +1,22 @@
 //const BASE = '/api/v1';
 const BASE = 'https://statit-backend.bluemeadow-174af2a3.eastus.azurecontainerapps.io/api/v1';
 
+function getAdminUsername() {
+  try {
+    const saved = localStorage.getItem('currentUser');
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    return parsed && parsed.admin ? parsed.username : null;
+  } catch {
+    return null;
+  }
+}
+
+function adminHeaders() {
+  const username = getAdminUsername();
+  return username ? { 'X-Admin-Username': username } : {};
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -74,15 +90,53 @@ export function createCategory({ name, description, units, tags, sort_order, fou
   });
 }
 
-export function updateCategory(categoryId, data) {
-  return request(`/categories/${categoryId}`, {
+// --- Admin (require admin user logged in) ---
+
+export function getPendingCategories(page = 0, size = 50) {
+  return request(`/admin/categories/pending?page=${page}&size=${size}`, {
+    headers: adminHeaders(),
+  });
+}
+
+export function adminUpdateCategory(categoryId, data) {
+  return request(`/admin/categories/${categoryId}`, {
     method: 'PUT',
+    headers: adminHeaders(),
     body: JSON.stringify(data),
   });
 }
 
-export function deleteCategory(categoryId) {
-  return request(`/categories/${categoryId}`, { method: 'DELETE' });
+export function adminApproveCategory(categoryId) {
+  return request(`/admin/categories/${categoryId}/approve`, {
+    method: 'POST',
+    headers: adminHeaders(),
+  });
+}
+
+export function adminDeleteCategory(categoryId) {
+  return request(`/admin/categories/${categoryId}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  });
+}
+
+export function adminDeleteScore(scoreId) {
+  return request(`/admin/scores/${scoreId}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  });
+}
+
+export function adminSearchUsers(query = '') {
+  const q = query ? `?query=${encodeURIComponent(query)}` : '';
+  return request(`/admin/users${q}`, { headers: adminHeaders() });
+}
+
+export function adminGrantAdmin(username) {
+  return request(`/admin/users/${encodeURIComponent(username)}/grant-admin`, {
+    method: 'POST',
+    headers: adminHeaders(),
+  });
 }
 
 // --- Scores ---
@@ -104,10 +158,6 @@ export function getScoreInfo(scoreId) {
 
 export function getUserScores(username, page = 0, size = 25) {
   return request(`/scores/user/${encodeURIComponent(username)}?page=${page}&size=${size}`);
-}
-
-export function deleteScore(scoreId) {
-  return request(`/scores/${scoreId}`, { method: 'DELETE' });
 }
 
 // --- Leaderboards ---

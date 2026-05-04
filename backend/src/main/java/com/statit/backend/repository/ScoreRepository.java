@@ -92,7 +92,7 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             ") best WHERE best.score_value > :scoreValue",
             nativeQuery = true)
     long countUsersWithBetterScoreDesc(@Param("categoryId") UUID categoryId,
-                                       @Param("scoreValue") Float scoreValue);
+                                       @Param("scoreValue") Double scoreValue);
 
     @Query(value = "SELECT COUNT(*) FROM (" +
             "SELECT DISTINCT ON (s.user_id) s.score_value FROM scores s " +
@@ -101,7 +101,7 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             ") best WHERE best.score_value < :scoreValue",
             nativeQuery = true)
     long countUsersWithBetterScoreAsc(@Param("categoryId") UUID categoryId,
-                                      @Param("scoreValue") Float scoreValue);
+                                      @Param("scoreValue") Double scoreValue);
 
     //------------------------------------------------------------------------------------------------
     // Filtered Leaderboards
