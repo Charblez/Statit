@@ -385,6 +385,14 @@ public class ScoreService
 
         //Update baseline record
         baseline.setMean(newMean);
+        if(newN == 1)
+        {
+            baseline.setMedian(newMean);
+        }
+        else if(newN == 0)
+        {
+            baseline.setMedian(0.0f);
+        }
         baseline.setStandardDeviation(newStdDev);
         baseline.setSampleSize(newN);
 

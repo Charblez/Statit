@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPendingCategories, adminSearchUsers, adminGrantAdmin } from '../api';
 
+const getCategoryImage = (category) => category?.imageData || category?.image_data || '';
+
 export default function AdminDashboardPage({ currentUser }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,7 @@ export default function AdminDashboardPage({ currentUser }) {
   };
 
   const handleGrant = async (username) => {
+    if (!window.confirm('Are you sure you want to grant admin permissions to this user?')) return;
     setUserError('');
     setUserMessage('');
     try {
@@ -86,7 +89,7 @@ export default function AdminDashboardPage({ currentUser }) {
 
         {userError && <div className="error-banner">{userError}</div>}
         {userMessage && (
-          <div className="error-banner" style={{ background: 'var(--success, #1e7e34)' }}>{userMessage}</div>
+          <div className="status-banner">{userMessage}</div>
         )}
 
         {userLoading ? (
@@ -140,30 +143,35 @@ export default function AdminDashboardPage({ currentUser }) {
         </div>
       ) : (
         <div className="card-grid">
-          {categories.map((cat) => (
-            <div
-              key={cat.categoryId}
-              className="category-card"
-              onClick={() => navigate(`/admin/category/${cat.categoryId}`)}
-            >
-              <h3>{cat.name}</h3>
-              {cat.description && <p className="card-meta">{cat.description}</p>}
-              <p className="card-meta">
-                Unit: {cat.units} &middot; {cat.sortOrder ? 'Higher is better' : 'Lower is better'}
-              </p>
-              <p className="card-meta">
-                Range: {cat.lowerLimit} – {cat.upperLimit}
-              </p>
-              {cat.tags && cat.tags.length > 0 && (
-                <div className="card-tags">
-                  {cat.tags.map((t) => (
-                    <span key={t} className="tag">{t}</span>
-                  ))}
-                </div>
-              )}
-              <span className="tag" style={{ marginTop: 8 }}>Pending</span>
-            </div>
-          ))}
+          {categories.map((cat) => {
+            const image = getCategoryImage(cat);
+
+            return (
+              <div
+                key={cat.categoryId}
+                className={`category-card ${image ? 'has-image' : ''}`}
+                style={image ? { '--category-image': `url("${image}")` } : undefined}
+                onClick={() => navigate(`/admin/category/${cat.categoryId}`)}
+              >
+                <h3>{cat.name}</h3>
+                {cat.description && <p className="card-meta">{cat.description}</p>}
+                <p className="card-meta">
+                  Unit: {cat.units} &middot; {cat.sortOrder ? 'Higher is better' : 'Lower is better'}
+                </p>
+                <p className="card-meta">
+                  Range: {cat.lowerLimit} – {cat.upperLimit}
+                </p>
+                {cat.tags && cat.tags.length > 0 && (
+                  <div className="card-tags">
+                    {cat.tags.map((t) => (
+                      <span key={t} className="tag">{t}</span>
+                    ))}
+                  </div>
+                )}
+                <span className="tag" style={{ marginTop: 8 }}>Pending</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

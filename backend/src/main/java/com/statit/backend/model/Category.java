@@ -52,6 +52,19 @@ public class Category
                     Double lowerLimit,
                     Double upperLimit)
     {
+        this(categoryName, description, units, tags, sortOrder, foundingUser, lowerLimit, upperLimit, null);
+    }
+
+    public Category(String categoryName,
+                    String description,
+                    String units,
+                    List<String> tags,
+                    Boolean sortOrder,
+                    User foundingUser,
+                    Double lowerLimit,
+                    Double upperLimit,
+                    String imageData)
+    {
         this.categoryName = categoryName;
         this.description = description;
         this.units = units;
@@ -60,6 +73,7 @@ public class Category
         this.foundingUser = foundingUser;
         this.lowerLimit = lowerLimit;
         this.upperLimit = upperLimit;
+        this.imageData = imageData;
     }
 
     //------------------------------------------------------------------------------------------------
@@ -82,6 +96,18 @@ public class Category
                        Double lowerLimit,
                        Double upperLimit)
     {
+        update(categoryName, description, units, tags, sortOrder, lowerLimit, upperLimit, imageData);
+    }
+
+    public void update(String categoryName,
+                       String description,
+                       String units,
+                       List<String> tags,
+                       Boolean sortOrder,
+                       Double lowerLimit,
+                       Double upperLimit,
+                       String imageData)
+    {
         this.categoryName = categoryName;
         this.description = description;
         this.units = units;
@@ -89,6 +115,7 @@ public class Category
         this.sortOrder = sortOrder;
         this.lowerLimit = lowerLimit;
         this.upperLimit = upperLimit;
+        this.imageData = imageData;
     }
 
     public void addTag(String tag)
@@ -118,6 +145,7 @@ public class Category
     public User getFoundingUser()                  { return foundingUser; }
     public Double getLowerLimit()                  { return lowerLimit; }
     public Double getUpperLimit()                  { return upperLimit; }
+    public String getImageData()                   { return imageData; }
     public LocalDateTime getCreatedAt()            { return createdAt; }
     public Boolean getLive()                       { return live != null && live; }
 
@@ -127,6 +155,7 @@ public class Category
     public void setTags(List<String> tags)          { this.tags = tags; }
     public void setLowerLimit(Double lowerLimit)    { this.lowerLimit = lowerLimit; }
     public void setUpperLimit(Double upperLimit)    { this.upperLimit = upperLimit; }
+    public void setImageData(String imageData)      { this.imageData = imageData; }
     public void setLive(Boolean live)               { this.live = live != null && live; }
 
     //------------------------------------------------------------------------------------------------
@@ -158,6 +187,9 @@ public class Category
 
     @Column(name = "upper_limit", nullable = false, columnDefinition = "double precision default 100.0")
     private Double upperLimit = 100.0;
+
+    @Column(name = "image_data", columnDefinition = "text")
+    private String imageData;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "founding_user_id", nullable = false)

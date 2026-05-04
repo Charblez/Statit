@@ -24,6 +24,8 @@ const createFilterTags = (region, sex) => {
   return tags;
 };
 
+const getCategoryImage = (category) => category?.imageData || category?.image_data || '';
+
 const buildHistogram = (values, preferredBinCount = HISTOGRAM_BIN_COUNT) => {
   if (values.length === 0) return [];
 
@@ -253,6 +255,7 @@ export default function CategoryPage({ currentUser }) {
   if (!category) return <div className="page"><div className="error-banner">{error || 'Category not found'}</div></div>;
 
   const baseline = baselines.length > 0 ? baselines[0] : null;
+  const categoryImage = getCategoryImage(category);
 
   const getRankLabel = (rank) => {
     if (rank === 1) return '1st';
@@ -325,7 +328,7 @@ const formatNumber = (num) => {
   const pageStartRank = page * 25 + 1;
 
   const handleAdminDeleteCategory = async () => {
-    if (!window.confirm(`Delete category "${category.name}" and all its scores?`)) return;
+    if (!window.confirm('Are you sure?')) return;
     try {
       await adminDeleteCategory(categoryId);
       sessionStorage.removeItem('categoriesCache');
@@ -336,7 +339,7 @@ const formatNumber = (num) => {
   };
 
   const handleAdminDeleteScore = async (scoreId) => {
-    if (!window.confirm('Delete this score?')) return;
+    if (!window.confirm('Are you sure?')) return;
     try {
       await adminDeleteScore(scoreId);
       await Promise.all([loadScores(page), loadBaselines(), loadChartScores()]);
@@ -348,7 +351,12 @@ const formatNumber = (num) => {
   return (
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <h1 className="page-title" style={{ marginBottom: 0 }}>{category.name}</h1>
+        <div className="category-title-row">
+          {categoryImage && (
+            <img className="category-title-icon" src={categoryImage} alt={`${category.name} icon`} />
+          )}
+          <h1 className="page-title" style={{ marginBottom: 0 }}>{category.name}</h1>
+        </div>
         {isAdmin && (
           <div style={{ position: 'relative' }}>
             <button className="btn btn-ghost btn-sm" onClick={() => setAdminMenuOpen((o) => !o)}>
@@ -379,8 +387,8 @@ const formatNumber = (num) => {
   <p 
     style={{ 
       color: 'var(--text-muted)', 
-      marginBottom: 24, 
-      marginTop: -16,
+      marginBottom: 28,
+      marginTop: 14,
       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
       overflow: 'hidden', 
       textOverflow: 'ellipsis' 

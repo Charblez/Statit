@@ -26,7 +26,8 @@ public record CategoryCreateRequest(String name,
                                     @JsonProperty("sort_order") Boolean sortOrder,
                                     @JsonProperty("founding_username") String foundingUsername,
                                     @JsonProperty("lower_limit") Double lowerLimit,
-                                    @JsonProperty("upper_limit") Double upperLimit)
+                                    @JsonProperty("upper_limit") Double upperLimit,
+                                    @JsonProperty("image_data") String imageData)
 {
     public CategoryCreateRequest(String name,
                                  String description,
@@ -35,6 +36,6 @@ public record CategoryCreateRequest(String name,
                                  Boolean sortOrder,
                                  String foundingUsername)
     {
-        this(name, description, units, tags, sortOrder, foundingUsername, 0.0, 100.0);
+        this(name, description, units, tags, sortOrder, foundingUsername, 0.0, 100.0, null);
     }
 }

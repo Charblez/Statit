@@ -58,7 +58,7 @@ class CategoryControllerTest
         CategoryCreateRequest req = new CategoryCreateRequest("Cat", "d", "u",
                 Arrays.asList("a"), true, "f");
         when(userService.getUser("f")).thenReturn(founder);
-        when(categoryService.createCategory(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(category);
+        when(categoryService.createCategory(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(category);
 
         ResponseEntity<CategoryResponse> response = categoryController.createCategory(req);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -72,7 +72,7 @@ class CategoryControllerTest
         CategoryCreateRequest req = new CategoryCreateRequest("Cat", "d", "u",
                 null, true, "f");
         when(userService.getUser("f")).thenReturn(founder);
-        when(categoryService.createCategory(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(category);
+        when(categoryService.createCategory(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(category);
 
         ResponseEntity<CategoryResponse> response = categoryController.createCategory(req);
         assertEquals(HttpStatus.OK, response.getStatusCode());

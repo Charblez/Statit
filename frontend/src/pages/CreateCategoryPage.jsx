@@ -14,6 +14,20 @@ export default function CreateCategoryPage({ currentUser }) {
   const navigate = useNavigate();
   const [lowerLimit, setLowerLimit] = useState('');
   const [upperLimit, setUpperLimit] = useState('');
+  const [imageData, setImageData] = useState('');
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setImageData('');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageData(String(reader.result || ''));
+    reader.onerror = () => setError('Failed to read image.');
+    reader.readAsDataURL(file);
+  };
 
 const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,6 +69,7 @@ const handleSubmit = async (e) => {
         founding_username: currentUser.username,
         lower_limit: parseFloat(lowerLimit), // <-- Changed
         upper_limit: parseFloat(upperLimit), // <-- Changed
+        image_data: imageData || null,
       });
 
       sessionStorage.removeItem('categoriesCache');
@@ -76,6 +91,7 @@ const handleSubmit = async (e) => {
       setTags('');
       setLowerLimit('');
       setUpperLimit('');
+      setImageData('');
       setSortOrder(true);
     } catch (err) {
       setError(err.message || 'Failed to create category');
@@ -102,9 +118,7 @@ const handleSubmit = async (e) => {
 
         {error && <div className="error-banner">{error}</div>}
         {message && (
-          <div className="error-banner" style={{ background: 'var(--success, #1e7e34)' }}>
-            {message}
-          </div>
+          <div className="status-banner">{message}</div>
         )}
 
         <div className="panel">
@@ -151,6 +165,19 @@ const handleSubmit = async (e) => {
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="e.g. fitness, speed (max 20 chars each)"
               />
+            </div>
+
+            <div className="form-group">
+              <label>Category Image</label>
+              <input
+                className="input"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+              {imageData && (
+                <img className="image-upload-preview" src={imageData} alt="Category preview" />
+              )}
             </div>
 
             <div className="form-group">

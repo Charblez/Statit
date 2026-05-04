@@ -7,6 +7,8 @@ import {
   adminDeleteCategory,
 } from '../api';
 
+const getCategoryImage = (category) => category?.imageData || category?.image_data || '';
+
 export default function AdminCategoryEditPage({ currentUser }) {
   const { categoryId } = useParams();
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export default function AdminCategoryEditPage({ currentUser }) {
   const [sortOrder, setSortOrder] = useState(true);
   const [lowerLimit, setLowerLimit] = useState('');
   const [upperLimit, setUpperLimit] = useState('');
+  const [imageData, setImageData] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -37,6 +40,7 @@ export default function AdminCategoryEditPage({ currentUser }) {
         setSortOrder(Boolean(cat.sortOrder));
         setLowerLimit(cat.lowerLimit ?? '');
         setUpperLimit(cat.upperLimit ?? '');
+        setImageData(getCategoryImage(cat));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -67,7 +71,20 @@ export default function AdminCategoryEditPage({ currentUser }) {
       founding_username: null,
       lower_limit: parseFloat(lowerLimit),
       upper_limit: parseFloat(upperLimit),
+      image_data: imageData || null,
     };
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageData(String(reader.result || ''));
+    reader.onerror = () => setError('Failed to read image.');
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -86,6 +103,7 @@ export default function AdminCategoryEditPage({ currentUser }) {
   };
 
   const handleApprove = async () => {
+    if (!window.confirm('Are you sure?')) return;
     setSaving(true);
     setError('');
     setMessage('');
@@ -102,7 +120,7 @@ export default function AdminCategoryEditPage({ currentUser }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this category permanently?')) return;
+    if (!window.confirm('Are you sure?')) return;
     setSaving(true);
     setError('');
     try {
@@ -123,7 +141,7 @@ export default function AdminCategoryEditPage({ currentUser }) {
         </h1>
 
         {error && <div className="error-banner">{error}</div>}
-        {message && <div className="error-banner" style={{ background: 'var(--success, #1e7e34)' }}>{message}</div>}
+        {message && <div className="status-banner">{message}</div>}
 
         <div className="panel">
           <div className="form-group">
@@ -144,6 +162,14 @@ export default function AdminCategoryEditPage({ currentUser }) {
           <div className="form-group">
             <label>Tags (comma separated)</label>
             <input className="input" value={tags} onChange={(e) => setTags(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Category Image</label>
+            <input className="input" type="file" accept="image/*" onChange={handleImageChange} />
+            {imageData && (
+              <img className="image-upload-preview" src={imageData} alt="Category preview" />
+            )}
           </div>
 
           <div className="form-group">

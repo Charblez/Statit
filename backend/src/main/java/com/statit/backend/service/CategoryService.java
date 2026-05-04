@@ -23,9 +23,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Base64;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 
 //----------------------------------------------------------------------------------------------------
 // Class Definition
@@ -58,6 +63,30 @@ public class CategoryService
                                    Double upperLimit,
                                    User foundingUser)
     {
+        return createCategory(
+                name,
+                description,
+                units,
+                tags,
+                sortOrder,
+                lowerLimit,
+                upperLimit,
+                null,
+                foundingUser
+        );
+    }
+
+    @Transactional
+    public Category createCategory(String name,
+                                   String description,
+                                   String units,
+                                   List<String> tags,
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
+                                   String imageData,
+                                   User foundingUser)
+    {
         if (lowerLimit == null || upperLimit == null) {
             throw new IllegalArgumentException("Lower limit and upper limit are required.");
         }
@@ -73,6 +102,8 @@ public class CategoryService
             throw new IllegalArgumentException("Category already exists.");
         }
 
+        String normalizedImageData = validateAndNormalizeImageData(imageData);
+
         //Create and save the category
         Category category = new Category(
                 name,
@@ -82,7 +113,8 @@ public class CategoryService
                 sortOrder,
                 foundingUser,
                 lowerLimit,
-                upperLimit
+                upperLimit,
+                normalizedImageData
         );
 
         return categoryRepository.save(category);
@@ -98,6 +130,20 @@ public class CategoryService
                                    Double lowerLimit,
                                    Double upperLimit)
     {
+        return updateCategory(categoryId, name, description, tags, units, sortOrder, lowerLimit, upperLimit, null);
+    }
+
+    @Transactional
+    public Category updateCategory(UUID categoryId,
+                                   String name,
+                                   String description,
+                                   List<String> tags,
+                                   String units,
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
+                                   String imageData)
+    {
         // --- ADD THIS CHECK ---
         if (lowerLimit == null || upperLimit == null) {
             throw new IllegalArgumentException("Lower limit and upper limit are required.");
@@ -109,7 +155,11 @@ public class CategoryService
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
 
-        category.update(name, description, units, tags, sortOrder, lowerLimit, upperLimit);
+        String normalizedImageData = imageData == null
+                ? category.getImageData()
+                : validateAndNormalizeImageData(imageData);
+
+        category.update(name, description, units, tags, sortOrder, lowerLimit, upperLimit, normalizedImageData);
         return categoryRepository.save(category);
     }
     
@@ -194,10 +244,43 @@ public class CategoryService
         globalBaselineRepository.save(baseline);
     }
 
+    private String validateAndNormalizeImageData(String imageData)
+    {
+        if(imageData == null) return null;
+
+        String normalized = imageData.trim();
+        if(normalized.isEmpty()) return null;
+
+        String base64 = normalized;
+        int commaIndex = base64.indexOf(',');
+        if(base64.toLowerCase().startsWith("data:image") && commaIndex >= 0)
+        {
+            base64 = base64.substring(commaIndex + 1);
+        }
+
+        try
+        {
+            byte[] imageBytes = Base64.getMimeDecoder().decode(base64);
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+
+            if(image == null || image.getWidth() != 512 || image.getHeight() != 512)
+            {
+                throw new IllegalArgumentException(CATEGORY_IMAGE_DIMENSIONS_ERROR);
+            }
+        }
+        catch(IllegalArgumentException | IOException e)
+        {
+            throw new IllegalArgumentException(CATEGORY_IMAGE_DIMENSIONS_ERROR);
+        }
+
+        return normalized;
+    }
+
     //------------------------------------------------------------------------------------------------
     // Private Variables
     //------------------------------------------------------------------------------------------------
     private final CategoryRepository categoryRepository;
     private final GlobalBaselineRepository globalBaselineRepository;
     private final ScoreRepository scoreRepository;
+    private static final String CATEGORY_IMAGE_DIMENSIONS_ERROR = "Image must be exactly 512x512 pixels.";
 }

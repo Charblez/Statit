@@ -63,6 +63,7 @@ public class CategoryController
                 request.sortOrder(),
                 request.lowerLimit(),
                 request.upperLimit(),
+                request.imageData(),
                 foundingUser
         );
 

@@ -81,7 +81,7 @@ export function getCategory(categoryId) {
   return request(`/categories/${categoryId}`);
 }
 
-export function createCategory({ name, description, units, tags, sort_order, founding_username, lower_limit, upper_limit }) {
+export function createCategory({ name, description, units, tags, sort_order, founding_username, lower_limit, upper_limit, image_data }) {
   return request('/categories', {
     method: 'POST',
     body: JSON.stringify({ 
@@ -92,7 +92,8 @@ export function createCategory({ name, description, units, tags, sort_order, fou
       sort_order, 
       founding_username, 
       lower_limit, 
-      upper_limit  
+      upper_limit,
+      image_data,
     }),
   });
 }

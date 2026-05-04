@@ -88,7 +88,8 @@ public class AdminController
                 request.units(),
                 request.sortOrder(),
                 request.lowerLimit(),
-                request.upperLimit()
+                request.upperLimit(),
+                request.imageData()
         );
 
         return ResponseEntity.ok(CategoryResponse.fromCategory(updated, "Category updated successfully"));
@@ -113,7 +114,7 @@ public class AdminController
         categoryService.deleteCategory(categoryId);
 
         return ResponseEntity.ok(new CategoryResponse(
-                categoryId, name, null, null, null, null, null, null, null, null,
+                categoryId, name, null, null, null, null, null, null, null, null, null,
                 "Category deleted successfully"
         ));
     }
