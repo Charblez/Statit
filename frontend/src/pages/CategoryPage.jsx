@@ -900,7 +900,9 @@ const formatNumber = (num) => {
                       <line className="you-marker-line" x1={markerX} y1="34" x2={markerX} y2={chartBaseY} />
                       <circle className="you-marker-dot" cx={markerX} cy={chartBaseY} r="4" />
                       <text className="you-marker-label" x={markerLabelX} y="24" textAnchor={markerTextAnchor}>
-                        This is you
+                        {userScoreValue > chartMax || userScoreValue < chartMin 
+                          ? `This is you (Outlier: ${formatNumber(userScoreValue)})` 
+                          : 'This is you'}
                       </text>
                     </g>
                   )}
