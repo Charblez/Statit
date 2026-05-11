@@ -12,6 +12,8 @@ package com.statit.backend.service;
 //----------------------------------------------------------------------------------------------------
 // Imports
 //----------------------------------------------------------------------------------------------------
+import com.statit.backend.dto.CorrelationPointResponse;
+import com.statit.backend.dto.CorrelationResponse;
 import com.statit.backend.dto.ScoreInfoResponse;
 import com.statit.backend.model.Category;
 import com.statit.backend.model.GlobalBaseline;
@@ -107,15 +109,18 @@ public class ScoreService
         // Find new top score after saving
         Score newTopScore = getTopScoreForUser(category, user).orElse(null);
 
-        // Update the global baseline
-        if(previousTopScore == null)
+        if(!category.isGlobal())
         {
-            updateGlobalBaseline(category, newTopScore.getScore(), false);
-        }
-        else if(!previousTopScore.getScoreId().equals(newTopScore.getScoreId()))
-        {
-            updateGlobalBaseline(category, previousTopScore.getScore(), true);
-            updateGlobalBaseline(category, newTopScore.getScore(), false);
+            // Update the local baseline
+            if(previousTopScore == null)
+            {
+                updateGlobalBaseline(category, newTopScore.getScore(), false);
+            }
+            else if(!previousTopScore.getScoreId().equals(newTopScore.getScoreId()))
+            {
+                updateGlobalBaseline(category, previousTopScore.getScore(), true);
+                updateGlobalBaseline(category, newTopScore.getScore(), false);
+            }
         }
 
         return newScore;
@@ -146,8 +151,8 @@ public class ScoreService
         scoreRepository.delete(scoreToDelete);
         scoreRepository.flush();
 
-        //Update the global baseline
-        if(wasTopScore)
+        //Update the local baseline
+        if(wasTopScore && !category.isGlobal())
         {
             updateGlobalBaseline(category, scoreToDelete.getScore(), true);
 
@@ -290,9 +295,100 @@ public class ScoreService
         );
     }
 
+    public Score getUserTopScoreForCategory(String username, UUID categoryId)
+    {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        requireLiveCategory(category);
+
+        return getTopScoreForUser(category, user)
+                .orElseThrow(() -> new IllegalArgumentException("Score not found."));
+    }
+
+    public CorrelationResponse getCorrelation(UUID primaryCategoryId, UUID secondaryCategoryId)
+    {
+        if(primaryCategoryId.equals(secondaryCategoryId))
+        {
+            throw new IllegalArgumentException("Choose two different categories for correlation.");
+        }
+
+        Category primaryCategory = categoryRepository.findById(primaryCategoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Primary category not found."));
+        Category secondaryCategory = categoryRepository.findById(secondaryCategoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Secondary category not found."));
+        requireLiveCategory(primaryCategory);
+        requireLiveCategory(secondaryCategory);
+
+        if(primaryCategory.isGlobal() || secondaryCategory.isGlobal())
+        {
+            throw new IllegalArgumentException("Correlation is only available for local categories.");
+        }
+
+        List<CorrelationPointResponse> points = scoreRepository.findPairedTopScoresForCorrelation(
+                        primaryCategoryId,
+                        secondaryCategoryId,
+                        Boolean.TRUE.equals(primaryCategory.getSortOrder()),
+                        Boolean.TRUE.equals(secondaryCategory.getSortOrder())
+                )
+                .stream()
+                .map(point -> new CorrelationPointResponse(point.getPrimaryScore(), point.getSecondaryScore()))
+                .toList();
+
+        return new CorrelationResponse(
+                primaryCategory.getCategoryId(),
+                secondaryCategory.getCategoryId(),
+                primaryCategory.getName(),
+                secondaryCategory.getName(),
+                primaryCategory.getUnits(),
+                secondaryCategory.getUnits(),
+                calculatePearsonCorrelation(points),
+                points.size(),
+                points
+        );
+    }
+
     //------------------------------------------------------------------------------------------------
     // Private Methods
     //------------------------------------------------------------------------------------------------
+    private Double calculatePearsonCorrelation(List<CorrelationPointResponse> points)
+    {
+        if(points.size() < 2)
+        {
+            return null;
+        }
+
+        double meanPrimary = points.stream()
+                .mapToDouble(CorrelationPointResponse::primaryScore)
+                .average()
+                .orElse(0.0);
+        double meanSecondary = points.stream()
+                .mapToDouble(CorrelationPointResponse::secondaryScore)
+                .average()
+                .orElse(0.0);
+
+        double numerator = 0.0;
+        double primaryVariance = 0.0;
+        double secondaryVariance = 0.0;
+
+        for(CorrelationPointResponse point : points)
+        {
+            double primaryDelta = point.primaryScore() - meanPrimary;
+            double secondaryDelta = point.secondaryScore() - meanSecondary;
+            numerator += primaryDelta * secondaryDelta;
+            primaryVariance += primaryDelta * primaryDelta;
+            secondaryVariance += secondaryDelta * secondaryDelta;
+        }
+
+        if(primaryVariance == 0.0 || secondaryVariance == 0.0)
+        {
+            return null;
+        }
+
+        return numerator / Math.sqrt(primaryVariance * secondaryVariance);
+    }
+
     private int computeRank(Category category, Double scoreValue)
     {
         if(category.getSortOrder())

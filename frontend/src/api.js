@@ -17,6 +17,17 @@ function adminHeaders() {
   return username ? { 'X-Admin-Username': username } : {};
 }
 
+function toQueryString(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      query.set(key, value);
+    }
+  });
+  const text = query.toString();
+  return text ? `?${text}` : '';
+}
+
 async function request(path, options = {}) {
   const { headers, ...fetchOptions } = options;
   const res = await fetch(`${BASE}${path}`, {
@@ -174,6 +185,10 @@ export function getUserScores(username, page = 0, size = 25) {
   return request(`/scores/user/${encodeURIComponent(username)}?page=${page}&size=${size}`);
 }
 
+export function getUserCategoryTopScore(username, categoryId) {
+  return request(`/scores/user/${encodeURIComponent(username)}/category/${categoryId}/top`);
+}
+
 // --- Leaderboards ---
 
 export function getTopScores(categoryId, page = 0, size = 25) {
@@ -193,4 +208,21 @@ export function getLeaderboardSnapshot(categoryId, page = 0, size = 25) {
 
 export function getBaselines(categoryId) {
   return request(`/leaderboards/${categoryId}/baselines`);
+}
+
+export function getCorrelation(categoryId, otherCategoryId) {
+  return request(`/leaderboards/${categoryId}/correlation?otherCategoryId=${otherCategoryId}`);
+}
+
+// --- Global Categories ---
+
+export function getGlobalDataset(categoryId, filters = {}) {
+  return request(`/global-categories/${categoryId}/dataset${toQueryString(filters)}`);
+}
+
+export function compareGlobalStat(categoryId, { score, tags }, filters = {}) {
+  return request(`/global-categories/${categoryId}/compare${toQueryString(filters)}`, {
+    method: 'POST',
+    body: JSON.stringify({ score, tags }),
+  });
 }

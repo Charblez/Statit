@@ -89,6 +89,15 @@ public class ScoreController
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/user/{username}/category/{categoryId}/top")
+    public ResponseEntity<ScoreResponse> getUserTopScoreForCategory(@PathVariable String username,
+                                                                    @PathVariable UUID categoryId)
+    {
+        Score score = scoreService.getUserTopScoreForCategory(username, categoryId);
+        ScoreResponse response = ScoreResponse.fromScore(score, null);
+        return ResponseEntity.ok(response);
+    }
+
     //------------------------------------------------------------------------------------------------
     // Private Variables
     //------------------------------------------------------------------------------------------------
