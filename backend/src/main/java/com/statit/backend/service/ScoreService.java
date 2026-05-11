@@ -94,6 +94,11 @@ public class ScoreService
 
         Score previousTopScore = getTopScoreForUser(category, user).orElse(null);
 
+        if(category.isGlobal() && previousTopScore != null && !isBetterScore(category, scoreValue, previousTopScore.getScore()))
+        {
+            return previousTopScore;
+        }
+
         // JSONB tags merge
         Map<String, String> finalTags = new HashMap<>();
         if(scoreTags != null) finalTags.putAll(scoreTags);
@@ -210,10 +215,88 @@ public class ScoreService
         return scoreRepository.findByUserOrderBySubmittedAtDesc(user, pageable);
     }
 
+    public Page<ScoreInfoResponse> getUserBestScoreInfo(String username, int page, int size)
+    {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        Pageable pageable = PageRequest.of(page, size);
+        return scoreRepository.findBestScoresPerCategoryForUser(user.getUserId(), pageable)
+                .map(this::buildScoreInfoResponse);
+    }
+
     public ScoreInfoResponse getScoreInfo(UUID scoreId)
     {
         Score score = scoreRepository.findById(scoreId)
                 .orElseThrow(() -> new IllegalArgumentException("Score not found."));
+
+        return buildScoreInfoResponse(score);
+    }
+
+    public ScoreInfoResponse getUserTopScoreInfoForCategory(String username, UUID categoryId)
+    {
+        return buildScoreInfoResponse(getUserTopScoreForCategory(username, categoryId));
+    }
+
+    public Score getUserTopScoreForCategory(String username, UUID categoryId)
+    {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        requireLiveCategory(category);
+
+        return getTopScoreForUser(category, user)
+                .orElseThrow(() -> new IllegalArgumentException("Score not found."));
+    }
+
+    public CorrelationResponse getCorrelation(UUID primaryCategoryId, UUID secondaryCategoryId)
+    {
+        if(primaryCategoryId.equals(secondaryCategoryId))
+        {
+            throw new IllegalArgumentException("Choose two different categories for correlation.");
+        }
+
+        Category primaryCategory = categoryRepository.findById(primaryCategoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Primary category not found."));
+        Category secondaryCategory = categoryRepository.findById(secondaryCategoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Secondary category not found."));
+        requireLiveCategory(primaryCategory);
+        requireLiveCategory(secondaryCategory);
+
+        if(primaryCategory.isGlobal() || secondaryCategory.isGlobal())
+        {
+            throw new IllegalArgumentException("Correlation is only available for local categories.");
+        }
+
+        List<CorrelationPointResponse> points = scoreRepository.findPairedTopScoresForCorrelation(
+                        primaryCategoryId,
+                        secondaryCategoryId,
+                        Boolean.TRUE.equals(primaryCategory.getSortOrder()),
+                        Boolean.TRUE.equals(secondaryCategory.getSortOrder())
+                )
+                .stream()
+                .map(point -> new CorrelationPointResponse(point.getUserId(), point.getPrimaryScore(), point.getSecondaryScore()))
+                .toList();
+
+        return new CorrelationResponse(
+                primaryCategory.getCategoryId(),
+                secondaryCategory.getCategoryId(),
+                primaryCategory.getName(),
+                secondaryCategory.getName(),
+                primaryCategory.getUnits(),
+                secondaryCategory.getUnits(),
+                calculatePearsonCorrelation(points),
+                points.size(),
+                points
+        );
+    }
+
+    //------------------------------------------------------------------------------------------------
+    // Private Methods
+    //------------------------------------------------------------------------------------------------
+    private ScoreInfoResponse buildScoreInfoResponse(Score score)
+    {
 
         Category category = score.getCategory();
         User user = score.getUser();
@@ -294,64 +377,6 @@ public class ScoreService
                 baselineSampleSize
         );
     }
-
-    public Score getUserTopScoreForCategory(String username, UUID categoryId)
-    {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
-        requireLiveCategory(category);
-
-        return getTopScoreForUser(category, user)
-                .orElseThrow(() -> new IllegalArgumentException("Score not found."));
-    }
-
-    public CorrelationResponse getCorrelation(UUID primaryCategoryId, UUID secondaryCategoryId)
-    {
-        if(primaryCategoryId.equals(secondaryCategoryId))
-        {
-            throw new IllegalArgumentException("Choose two different categories for correlation.");
-        }
-
-        Category primaryCategory = categoryRepository.findById(primaryCategoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Primary category not found."));
-        Category secondaryCategory = categoryRepository.findById(secondaryCategoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Secondary category not found."));
-        requireLiveCategory(primaryCategory);
-        requireLiveCategory(secondaryCategory);
-
-        if(primaryCategory.isGlobal() || secondaryCategory.isGlobal())
-        {
-            throw new IllegalArgumentException("Correlation is only available for local categories.");
-        }
-
-        List<CorrelationPointResponse> points = scoreRepository.findPairedTopScoresForCorrelation(
-                        primaryCategoryId,
-                        secondaryCategoryId,
-                        Boolean.TRUE.equals(primaryCategory.getSortOrder()),
-                        Boolean.TRUE.equals(secondaryCategory.getSortOrder())
-                )
-                .stream()
-                .map(point -> new CorrelationPointResponse(point.getPrimaryScore(), point.getSecondaryScore()))
-                .toList();
-
-        return new CorrelationResponse(
-                primaryCategory.getCategoryId(),
-                secondaryCategory.getCategoryId(),
-                primaryCategory.getName(),
-                secondaryCategory.getName(),
-                primaryCategory.getUnits(),
-                secondaryCategory.getUnits(),
-                calculatePearsonCorrelation(points),
-                points.size(),
-                points
-        );
-    }
-
-    //------------------------------------------------------------------------------------------------
-    // Private Methods
-    //------------------------------------------------------------------------------------------------
     private Double calculatePearsonCorrelation(List<CorrelationPointResponse> points)
     {
         if(points.size() < 2)
@@ -505,6 +530,17 @@ public class ScoreService
         {
             return scoreRepository.findFirstByCategoryAndUserOrderByScoreAsc(category, user);
         }
+    }
+
+    private boolean isBetterScore(Category category, Double candidateScore, Double currentBestScore)
+    {
+        if(candidateScore == null) return false;
+        if(currentBestScore == null) return true;
+        if(Boolean.TRUE.equals(category.getSortOrder()))
+        {
+            return candidateScore > currentBestScore;
+        }
+        return candidateScore < currentBestScore;
     }
 
     private String serializeTagsToJson(Map<String, String> tags)
