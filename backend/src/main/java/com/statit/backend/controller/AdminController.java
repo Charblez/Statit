@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -120,12 +121,12 @@ public class AdminController
     }
 
     @DeleteMapping("/scores/{scoreId}")
-    public ResponseEntity<Void> deleteScore(@RequestHeader("X-Admin-Username") String adminUsername,
-                                            @PathVariable UUID scoreId)
+    public ResponseEntity<Map<String, String>> deleteScore(@RequestHeader("X-Admin-Username") String adminUsername,
+                                                           @PathVariable UUID scoreId)
     {
         adminAuthService.requireAdmin(adminUsername);
         scoreService.deleteScore(scoreId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of("message", "success"));
     }
 
     @GetMapping("/users")

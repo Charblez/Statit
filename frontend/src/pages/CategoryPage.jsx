@@ -90,6 +90,27 @@ const buildPercentilePoints = (values) => {
   }));
 };
 
+const calculateLinearRegression = (points) => {
+  if (points.length < 2) return null;
+
+  const meanX = points.reduce((sum, point) => sum + point.primaryScore, 0) / points.length;
+  const meanY = points.reduce((sum, point) => sum + point.secondaryScore, 0) / points.length;
+  let numerator = 0;
+  let denominator = 0;
+
+  points.forEach((point) => {
+    const xDelta = point.primaryScore - meanX;
+    numerator += xDelta * (point.secondaryScore - meanY);
+    denominator += xDelta * xDelta;
+  });
+
+  if (denominator === 0) return null;
+
+  const slope = numerator / denominator;
+  const intercept = meanY - slope * meanX;
+  return { slope, intercept };
+};
+
 const isValidScore = (val, minLimit = MIN_SCORE, maxLimit = MAX_SCORE) => {
   if (val === '' || val === null || val === undefined) return false;
   if (/e/i.test(String(val))) return false;
@@ -117,6 +138,7 @@ export default function CategoryPage({ currentUser }) {
   const [chartError, setChartError] = useState('');
   const [globalDataset, setGlobalDataset] = useState(null);
   const [globalComparison, setGlobalComparison] = useState(null);
+  const [userScoreInfo, setUserScoreInfo] = useState(null);
   const [localCategoryOptions, setLocalCategoryOptions] = useState([]);
   const [correlationCategoryId, setCorrelationCategoryId] = useState('');
   const [correlationData, setCorrelationData] = useState(null);
@@ -263,6 +285,38 @@ export default function CategoryPage({ currentUser }) {
     }
   }, [category, categoryId, correlationCategoryId]);
 
+  const loadUserScoreInfo = useCallback(async () => {
+    if (!category || !currentUser?.username) {
+      setUserScoreInfo(null);
+      return;
+    }
+
+    try {
+      const scoreInfo = await getUserCategoryTopScore(currentUser.username, categoryId);
+      const savedScore = scoreInfo?.score == null ? NaN : Number(scoreInfo.score);
+      setUserScoreInfo(scoreInfo);
+
+      if (Number.isFinite(savedScore)) {
+        setLatestSubmittedScore(savedScore);
+      }
+
+      if (isGlobalCategory(category) && Number.isFinite(savedScore)) {
+        const comparison = await compareGlobalStat(
+          categoryId,
+          { score: savedScore, tags: scoreInfo?.tags || {} },
+          getGlobalFilterTags()
+        );
+        setGlobalComparison(comparison);
+      }
+    } catch {
+      setUserScoreInfo(null);
+      setLatestSubmittedScore(null);
+      if (isGlobalCategory(category)) {
+        setGlobalComparison(null);
+      }
+    }
+  }, [category, categoryId, currentUser?.username, getGlobalFilterTags]);
+
   useEffect(() => {
     setLoading(true);
     setCategory(null);
@@ -271,6 +325,7 @@ export default function CategoryPage({ currentUser }) {
     setChartScores([]);
     setGlobalDataset(null);
     setGlobalComparison(null);
+    setUserScoreInfo(null);
     setLatestSubmittedScore(null);
     setLocalCategoryOptions([]);
     setCorrelationCategoryId('');
@@ -336,28 +391,6 @@ export default function CategoryPage({ currentUser }) {
   }, [category, categoryId]);
 
   useEffect(() => {
-    if (!category || !currentUser?.username || !isGlobalCategory(category)) return;
-
-    let cancelled = false;
-
-    getUserCategoryTopScore(currentUser.username, categoryId)
-      .then((score) => {
-        if (cancelled) return;
-        const savedScore = score?.score == null ? NaN : Number(score.score);
-        if (Number.isFinite(savedScore)) {
-          setLatestSubmittedScore(savedScore);
-        }
-      })
-      .catch(() => {
-        // No saved score for this global category yet.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [category, categoryId, currentUser?.username]);
-
-  useEffect(() => {
     if (!category) return;
 
     setLoading(true);
@@ -371,6 +404,10 @@ export default function CategoryPage({ currentUser }) {
   useEffect(() => {
     loadCorrelation();
   }, [loadCorrelation]);
+
+  useEffect(() => {
+    loadUserScoreInfo();
+  }, [loadUserScoreInfo, filterRequestId]);
 
   const handleFilter = () => {
     setPage(0);
@@ -436,14 +473,15 @@ export default function CategoryPage({ currentUser }) {
       }
 
       if (isGlobalCategory(category)) {
-        await submitScore({
+        const savedScore = await submitScore({
           user_id: currentUser.userId,
           category_id: categoryId,
           score: num,
           tags,
           anonymous: false,
         });
-        const comparison = await compareGlobalStat(categoryId, { score: num, tags }, getGlobalFilterTags());
+        const acceptedScore = savedScore?.score == null ? num : Number(savedScore.score);
+        const comparison = await compareGlobalStat(categoryId, { score: acceptedScore, tags }, getGlobalFilterTags());
         setGlobalComparison(comparison);
         setGlobalDataset({
           ...(globalDataset || {}),
@@ -459,7 +497,8 @@ export default function CategoryPage({ currentUser }) {
           scatterPoints: comparison.scatterPoints,
         });
         setScoreValue('');
-        setLatestSubmittedScore(num);
+        setLatestSubmittedScore(acceptedScore);
+        await loadUserScoreInfo();
         await loadScores(page);
         return;
       }
@@ -473,7 +512,7 @@ export default function CategoryPage({ currentUser }) {
       });
       setScoreValue('');
       setLatestSubmittedScore(num);
-      await Promise.all([loadScores(page), loadBaselines(), loadChartScores(), loadCorrelation()]);
+      await Promise.all([loadScores(page), loadBaselines(), loadChartScores(), loadCorrelation(), loadUserScoreInfo()]);
     } catch (err) {
       setSubmitError(err.message || 'Failed to submit score');
     } finally {
@@ -555,10 +594,8 @@ const formatNumber = (num) => {
     ? chartScores.find((entry) => !entry.anonymous && entry.username === currentUser.username)
     : null;
   const userScoreValue = globalCategory
-    ? globalComparison?.submittedValue ?? latestSubmittedScore
-    : currentUserChartEntry
-      ? Number(currentUserChartEntry.score)
-      : latestSubmittedScore;
+    ? globalComparison?.submittedValue ?? userScoreInfo?.score ?? latestSubmittedScore
+    : userScoreInfo?.score ?? (currentUserChartEntry ? Number(currentUserChartEntry.score) : latestSubmittedScore);
   const numericUserScoreValue = userScoreValue == null ? NaN : Number(userScoreValue);
   const hasUserMarker = Number.isFinite(numericUserScoreValue) && hasChartData;
   const chartLeft = 48;
@@ -598,10 +635,18 @@ const formatNumber = (num) => {
       ? [percentileMin]
       : [percentileMax, (percentileMin + percentileMax) / 2, percentileMin]
     : [];
+  const userPercentileValue = globalCategory ? globalComparison?.percentile : userScoreInfo?.percentile;
+  const numericUserPercentileValue = userPercentileValue == null ? NaN : Number(userPercentileValue);
+  const hasPercentileMarker = hasPercentileData && Number.isFinite(numericUserPercentileValue);
+  const percentileMarkerX = chartLeft + clamp(numericUserPercentileValue / 100, 0, 1) * chartWidth;
+  const percentileMarkerLabelX = clamp(percentileMarkerX, 72, 596);
+  const percentileMarkerTextAnchor = percentileMarkerX < 72 ? 'start' : percentileMarkerX > 596 ? 'end' : 'middle';
   const correlationPoints = (correlationData?.points || [])
     .map((point) => ({
+      userId: point.userId,
       primaryScore: Number(point.primaryScore),
       secondaryScore: Number(point.secondaryScore),
+      isCurrentUser: Boolean(currentUser?.userId) && point.userId === currentUser.userId,
     }))
     .filter((point) => Number.isFinite(point.primaryScore) && Number.isFinite(point.secondaryScore));
   const hasCorrelationData = correlationPoints.length > 0;
@@ -615,6 +660,41 @@ const formatNumber = (num) => {
   const correlationCountLabel = correlationData
     ? `${formatNumber(correlationData.sampleSize)} paired participants`
     : '';
+  const correlationTrendline = calculateLinearRegression(correlationPoints);
+  const formatEquationNumber = (value) => {
+    if (!Number.isFinite(value)) return '-';
+    if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.01)) {
+      return value.toExponential(2);
+    }
+    return value.toFixed(2);
+  };
+  const trendlineEquation = correlationTrendline
+    ? `y = ${formatEquationNumber(correlationTrendline.slope)}x ${correlationTrendline.intercept < 0 ? '-' : '+'} ${formatEquationNumber(Math.abs(correlationTrendline.intercept))}`
+    : '';
+  const trendlineStart = correlationTrendline && hasCorrelationData
+    ? {
+      x: chartLeft,
+      y: chartBaseY - clamp(
+        correlationMinY === correlationMaxY
+          ? 0.5
+          : ((correlationTrendline.slope * correlationMinX + correlationTrendline.intercept) - correlationMinY) / (correlationMaxY - correlationMinY),
+        0,
+        1
+      ) * chartHeight,
+    }
+    : null;
+  const trendlineEnd = correlationTrendline && hasCorrelationData
+    ? {
+      x: chartRight,
+      y: chartBaseY - clamp(
+        correlationMinY === correlationMaxY
+          ? 0.5
+          : ((correlationTrendline.slope * correlationMaxX + correlationTrendline.intercept) - correlationMinY) / (correlationMaxY - correlationMinY),
+        0,
+        1
+      ) * chartHeight,
+    }
+    : null;
   const filtersActive = Boolean(appliedFilterRegion || appliedFilterSex);
   const globalFiltersActive = Boolean(appliedGlobalFilterSex || appliedGlobalFilterAgeGroup || appliedGlobalFilterRegion);
   const chartFiltersActive = globalCategory ? globalFiltersActive : filtersActive;
@@ -637,7 +717,7 @@ const formatNumber = (num) => {
     if (!window.confirm('Are you sure?')) return;
     try {
       await adminDeleteScore(scoreId);
-      await Promise.all([loadScores(page), loadBaselines(), loadChartScores(), loadCorrelation()]);
+      await Promise.all([loadScores(page), loadBaselines(), loadChartScores(), loadCorrelation(), loadUserScoreInfo()]);
     } catch (err) {
       setAdminError(err.message);
     }
@@ -889,6 +969,16 @@ const formatNumber = (num) => {
                     />
                   )}
 
+                  {hasPercentileMarker && (
+                    <g className="you-marker">
+                      <line className="you-marker-line" x1={percentileMarkerX} y1="34" x2={percentileMarkerX} y2={chartBaseY} />
+                      <circle className="you-marker-dot" cx={percentileMarkerX} cy={chartBaseY} r="4" />
+                      <text className="you-marker-label" x={percentileMarkerLabelX} y="24" textAnchor={percentileMarkerTextAnchor}>
+                        This is you
+                      </text>
+                    </g>
+                  )}
+
                   {[0, 25, 50, 75, 100].map((tick, index) => {
                     const x = chartLeft + (tick / 100) * chartWidth;
                     const textAnchor = index === 0 ? 'start' : index === 4 ? 'end' : 'middle';
@@ -950,7 +1040,14 @@ const formatNumber = (num) => {
                       ))
                     )}
                   </select>
+                  {hasCorrelationData && (
+                    <div className="chart-legend">
+                      <span className="legend-dot legend-dot-you" />
+                      YOU
+                    </div>
+                  )}
                   {correlationData && <div className="chart-count">{correlationLabel}</div>}
+                  {trendlineEquation && <div className="chart-count">{trendlineEquation}</div>}
                   {correlationCountLabel && <div className="chart-count">{correlationCountLabel}</div>}
                 </div>
               </div>
@@ -972,6 +1069,16 @@ const formatNumber = (num) => {
                     <line className="chart-axis" x1={chartLeft} y1={chartBaseY} x2={chartRight} y2={chartBaseY} />
                     <line className="chart-axis" x1={chartLeft} y1={chartTop} x2={chartLeft} y2={chartBaseY} />
 
+                    {trendlineStart && trendlineEnd && (
+                      <line
+                        className="chart-trendline"
+                        x1={trendlineStart.x}
+                        y1={trendlineStart.y}
+                        x2={trendlineEnd.x}
+                        y2={trendlineEnd.y}
+                      />
+                    )}
+
                     {correlationPoints.map((point, index) => {
                       const xRatio = correlationMinX === correlationMaxX
                         ? 0.5
@@ -985,10 +1092,10 @@ const formatNumber = (num) => {
                       return (
                         <circle
                           key={`${point.primaryScore}-${point.secondaryScore}-${index}`}
-                          className="chart-scatter-point"
+                          className={`chart-scatter-point ${point.isCurrentUser ? 'current-user-point' : ''}`}
                           cx={x}
                           cy={y}
-                          r="4"
+                          r={point.isCurrentUser ? '5' : '4'}
                         >
                           <title>{`${formatNumber(point.primaryScore)} ${category.units}, ${formatNumber(point.secondaryScore)} ${correlationData.secondaryUnits}`}</title>
                         </circle>
@@ -1053,36 +1160,42 @@ const formatNumber = (num) => {
           )}
         </div>
 
-        <div className="panel">
-          <div className="panel-title">Statistics</div>
-          {globalCategory && globalDataset ? (
-            <div className="stats-grid">
-              <div className="stat-item"><div className="stat-value">{formatNumber(globalDataset.mean)}</div><div className="stat-label">Mean</div></div>
-              <div className="stat-item"><div className="stat-value">{formatNumber(globalDataset.standardDeviation)}</div><div className="stat-label">Std Dev</div></div>
-              <div className="stat-item"><div className="stat-value">{formatNumber(globalDataset.sampleSize)}</div><div className="stat-label">Participants</div></div>
-              <div className="stat-item"><div className="stat-value">{category.units}</div><div className="stat-label">Unit</div></div>
-              {globalComparison && (
-                <>
-                  <div className="stat-item"><div className="stat-value">{formatNumber(globalComparison.percentile)}%</div><div className="stat-label">Percentile</div></div>
-                  <div className="stat-item"><div className="stat-value">{formatNumber(globalComparison.rankEstimate)}</div><div className="stat-label">Rank Estimate</div></div>
-                </>
-              )}
-            </div>
-          ) : baseline ? (
-            <div className="stats-grid">
-              <div className="stat-item"><div className="stat-value">{formatNumber(baseline.mean)}</div><div className="stat-label">Mean</div></div>
-              <div className="stat-item"><div className="stat-value">{formatNumber(baseline.standardDeviation)}</div><div className="stat-label">Std Dev</div></div>
-              <div className="stat-item"><div className="stat-value">{baseline.sampleSize ?? '-'}</div><div className="stat-label">Participants</div></div>
-              <div className="stat-item"><div className="stat-value">{totalElements}</div><div className="stat-label">Total Entries</div></div>
-              {baseline.median != null && <div className="stat-item"><div className="stat-value">{formatNumber(baseline.median)}</div><div className="stat-label">Median</div></div>}
-              <div className="stat-item"><div className="stat-value">{category.units}</div><div className="stat-label">Unit</div></div>
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No baseline statistics available yet.</p>
-          )}
-        </div>
+        <div className="category-side-panel">
+          <div className="panel">
+            <div className="panel-title">Statistics</div>
+            {globalCategory && globalDataset ? (
+              <div className="stats-grid">
+                <div className="stat-item"><div className="stat-value">{formatNumber(globalDataset.mean)}</div><div className="stat-label">Mean</div></div>
+                <div className="stat-item"><div className="stat-value">{formatNumber(globalDataset.standardDeviation)}</div><div className="stat-label">Std Dev</div></div>
+                <div className="stat-item"><div className="stat-value">{formatNumber(globalDataset.sampleSize)}</div><div className="stat-label">Participants</div></div>
+                <div className="stat-item"><div className="stat-value">{category.units}</div><div className="stat-label">Unit</div></div>
+                {globalComparison && (
+                  <>
+                    <div className="stat-item"><div className="stat-value">{formatNumber(globalComparison.percentile)}%</div><div className="stat-label">Percentile</div></div>
+                    <div className="stat-item"><div className="stat-value">{formatNumber(globalComparison.rankEstimate)}</div><div className="stat-label">Rank Estimate</div></div>
+                  </>
+                )}
+              </div>
+            ) : baseline ? (
+              <div className="stats-grid">
+                <div className="stat-item"><div className="stat-value">{formatNumber(baseline.mean)}</div><div className="stat-label">Mean</div></div>
+                <div className="stat-item"><div className="stat-value">{formatNumber(baseline.standardDeviation)}</div><div className="stat-label">Std Dev</div></div>
+                <div className="stat-item"><div className="stat-value">{baseline.sampleSize ?? '-'}</div><div className="stat-label">Participants</div></div>
+                <div className="stat-item"><div className="stat-value">{totalElements}</div><div className="stat-label">Total Entries</div></div>
+                {baseline.median != null && <div className="stat-item"><div className="stat-value">{formatNumber(baseline.median)}</div><div className="stat-label">Median</div></div>}
+                <div className="stat-item"><div className="stat-value">{category.units}</div><div className="stat-label">Unit</div></div>
+                {userScoreInfo && (
+                  <>
+                    <div className="stat-item"><div className="stat-value">{formatNumber(userScoreInfo.percentile)}%</div><div className="stat-label">Percentile</div></div>
+                    <div className="stat-item"><div className="stat-value">{formatNumber(userScoreInfo.rank)}</div><div className="stat-label">Rank</div></div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No baseline statistics available yet.</p>
+            )}
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {!globalCategory && (
             <div className="panel">
               <div className="panel-title">Filters</div>
@@ -1180,11 +1293,6 @@ const formatNumber = (num) => {
             {currentUser ? (
               <form className="submit-form" onSubmit={handleSubmitScore}>
                 {submitError && <div className="error-banner">{submitError}</div>}
-                {globalComparison && (
-                  <div className="status-banner">
-                    You are in the {formatNumber(globalComparison.percentile)} percentile. Estimated rank: {formatNumber(globalComparison.rankEstimate)}.
-                  </div>
-                )}
                 <div className="score-input-row">
                   <input
                     className="input"

@@ -1,6 +1,9 @@
 package com.statit.backend.dto;
 
-public record CorrelationPointResponse(Double primaryScore,
+import java.util.UUID;
+
+public record CorrelationPointResponse(UUID userId,
+                                       Double primaryScore,
                                        Double secondaryScore)
 {
 }

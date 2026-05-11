@@ -51,7 +51,9 @@ async function request(path, options = {}) {
     }
     throw new Error(message);
   }
-  return res.json();
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 // --- Users ---
