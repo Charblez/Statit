@@ -6,6 +6,7 @@ import {
   adminApproveCategory,
   adminDeleteCategory,
 } from '../api';
+import { cropImageFileToSquare } from '../utils/imageCrop';
 
 const getCategoryImage = (category) => category?.imageData || category?.image_data || '';
 
@@ -75,16 +76,19 @@ export default function AdminCategoryEditPage({ currentUser }) {
     };
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => setImageData(String(reader.result || ''));
-    reader.onerror = () => setError('Failed to read image.');
-    reader.readAsDataURL(file);
+    try {
+      setError('');
+      const croppedImage = await cropImageFileToSquare(file);
+      setImageData(croppedImage);
+    } catch (err) {
+      setError(err.message || 'Failed to process image.');
+    }
   };
 
   const handleSave = async () => {
