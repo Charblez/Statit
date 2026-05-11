@@ -5,11 +5,21 @@
 # 3 If changes are made and need to be updated, run the command and follow instructions on the terminal 
 # Note: Each time you change the frontend and want to redeploy, change v7 to v8, increment it 
 
+# If you change frontend, run this in frontend:
 cd ~/Statit/frontend
 az acr login --name ca93d2246cc8acr
-docker build --no-cache -t ca93d2246cc8acr.azurecr.io/statit-frontend:v10 .
-docker push ca93d2246cc8acr.azurecr.io/statit-frontend:v10
-az containerapp update --name statit-frontend --resource-group STATITgroup --image ca93d2246cc8acr.azurecr.io/statit-frontend:v10
+docker build --no-cache -t ca93d2246cc8acr.azurecr.io/statit-frontend:v38 .
+docker push ca93d2246cc8acr.azurecr.io/statit-frontend:v38
+az containerapp update --name statit-frontend --resource-group STATITgroup --image ca93d2246cc8acr.azurecr.io/statit-frontend:v38
+
+# If you change backend, run this in backend:
+cd ~/Statit/backend
+az acr login --name ca93d2246cc8acr
+docker build --no-cache -t ca93d2246cc8acr.azurecr.io/statit-backend:v38 .
+docker push ca93d2246cc8acr.azurecr.io/statit-backend:v38
+az containerapp update --name statit-backend --resource-group STATITgroup --image ca93d2246cc8acr.azurecr.io/statit-backend:v38
+
+
 
 # Note: If you need to log into Azure, run 
 az login 
