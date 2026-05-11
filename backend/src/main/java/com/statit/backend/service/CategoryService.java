@@ -25,14 +25,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Base64;
 import java.util.UUID;
-import javax.imageio.ImageIO;
 
 //----------------------------------------------------------------------------------------------------
 // Class Definition
@@ -106,7 +101,7 @@ public class CategoryService
             throw new IllegalArgumentException("Category already exists.");
         }
 
-        String normalizedImageData = validateAndNormalizeImageData(imageData);
+        String normalizedImageData = normalizeImageData(imageData);
 
         //Create and save the category
         Category category = new Category(
@@ -163,7 +158,7 @@ public class CategoryService
 
         String normalizedImageData = imageData == null
                 ? category.getImageData()
-                : validateAndNormalizeImageData(imageData);
+                : normalizeImageData(imageData);
 
         category.update(name, description, units, tags, sortOrder, lowerLimit, upperLimit, normalizedImageData);
         return categoryRepository.save(category);
@@ -291,34 +286,12 @@ public class CategoryService
         globalBaselineRepository.save(baseline);
     }
 
-    private String validateAndNormalizeImageData(String imageData)
+    private String normalizeImageData(String imageData)
     {
         if(imageData == null) return null;
 
         String normalized = imageData.trim();
         if(normalized.isEmpty()) return null;
-
-        String base64 = normalized;
-        int commaIndex = base64.indexOf(',');
-        if(base64.toLowerCase().startsWith("data:image") && commaIndex >= 0)
-        {
-            base64 = base64.substring(commaIndex + 1);
-        }
-
-        try
-        {
-            byte[] imageBytes = Base64.getMimeDecoder().decode(base64);
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
-
-            if(image == null || image.getWidth() != 512 || image.getHeight() != 512)
-            {
-                throw new IllegalArgumentException(CATEGORY_IMAGE_DIMENSIONS_ERROR);
-            }
-        }
-        catch(IllegalArgumentException | IOException e)
-        {
-            throw new IllegalArgumentException(CATEGORY_IMAGE_DIMENSIONS_ERROR);
-        }
 
         return normalized;
     }
