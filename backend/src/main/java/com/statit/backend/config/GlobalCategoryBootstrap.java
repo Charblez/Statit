@@ -25,7 +25,7 @@ public class GlobalCategoryBootstrap implements CommandLineRunner
 
         categoryService.ensureGlobalCategory(
                 "Height",
-                "Compare your height against a reference population.",
+                "Compare your height against OWID population height data. Source: OWID",
                 "cm",
                 List.of("global", "health"),
                 true,
