@@ -56,12 +56,12 @@ const buildCompetitionRankByScore = (entries) => {
   return rankByScore;
 };
 
-const isValidScore = (val) => {
+const isValidScore = (val, minLimit = MIN_SCORE, maxLimit = MAX_SCORE) => {
   if (val === '' || val === null || val === undefined) return false;
   if (/e/i.test(String(val))) return false;
   const num = parseFloat(val);
   if (isNaN(num)) return false;
-  if (num < MIN_SCORE || num > MAX_SCORE) return false;
+  if (num < minLimit || num > maxLimit) return false;
   return true;
 };
 
@@ -204,8 +204,11 @@ export default function CategoryPage({ currentUser }) {
     e.preventDefault();
     setSubmitError('');
 
-    if (!isValidScore(scoreValue)) {
-      setSubmitError('Score must be a plain number between 0 and 999,999,999,999. Scientific notation (e.g. 1e100) is not allowed.');
+    const minLimit = category.lowerLimit ?? MIN_SCORE;
+    const maxLimit = category.upperLimit ?? MAX_SCORE;
+
+    if (!isValidScore(scoreValue, minLimit, maxLimit)) {
+      setSubmitError(`Score must be a plain number between ${minLimit} and ${maxLimit.toLocaleString()}. Scientific notation is not allowed.`);
       return;
     }
 
@@ -253,11 +256,15 @@ export default function CategoryPage({ currentUser }) {
     return '';
   };
 
-  const formatNumber = (num) => {
+const formatNumber = (num) => {
     if (num == null) return '-';
-    return Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const n = Number(num);
+    if (Math.abs(n) >= 1e8) {
+      return n.toExponential(3);
+    }
+    
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
-
   const formatCompactNumber = (num) => {
     if (num == null) return '-';
     return Number(num).toLocaleString(undefined, {
@@ -308,7 +315,20 @@ export default function CategoryPage({ currentUser }) {
   return (
     <div className="page">
       <h1 className="page-title">{category.name}</h1>
-      {category.description && <p style={{ color: 'var(--text-muted)', marginBottom: 24, marginTop: -16 }}>{category.description}</p>}
+      {category.description && (
+  <p 
+    style={{ 
+      color: 'var(--text-muted)', 
+      marginBottom: 24, 
+      marginTop: -16,
+      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+      overflow: 'hidden', 
+      textOverflow: 'ellipsis' 
+    }}
+  >
+    {category.description}
+  </p>
+)}
 
       {error && <div className="error-banner">{error}</div>}
 
@@ -425,7 +445,9 @@ export default function CategoryPage({ currentUser }) {
                       <line className="you-marker-line" x1={markerX} y1="34" x2={markerX} y2={chartBaseY} />
                       <circle className="you-marker-dot" cx={markerX} cy={chartBaseY} r="4" />
                       <text className="you-marker-label" x={markerLabelX} y="24" textAnchor={markerTextAnchor}>
-                        This is you
+                        {userScoreValue > chartMax || userScoreValue < chartMin 
+                          ? `This is you (Outlier: ${formatNumber(userScoreValue)})` 
+                          : 'This is you'}
                       </text>
                     </g>
                   )}
@@ -516,8 +538,8 @@ export default function CategoryPage({ currentUser }) {
                     className="input"
                     type="number"
                     step="any"
-                    min={MIN_SCORE}
-                    max={MAX_SCORE}
+                    min={category.lowerLimit ?? MIN_SCORE}
+                    max={category.upperLimit ?? MAX_SCORE}
                     value={scoreValue}
                     onChange={handleScoreChange}
                     placeholder="0"
@@ -526,7 +548,7 @@ export default function CategoryPage({ currentUser }) {
                   <span className="unit-label">{category.units}</span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>
-                  Valid range: 0 – 999,999,999,999
+                  Valid range: {category.lowerLimit ?? MIN_SCORE} – {(category.upperLimit ?? MAX_SCORE).toLocaleString()}
                 </p>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />

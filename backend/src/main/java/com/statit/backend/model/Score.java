@@ -35,7 +35,7 @@ public class Score
 
     public Score(Category category,
                  User user,
-                 Float score,
+                 Double score,
                  Map<String, String> tags,
                  Boolean anonymous)
     {
@@ -52,7 +52,7 @@ public class Score
     //------------------------------------------------------------------------------------------------
     public void update(Category category,
                        User user,
-                       Float score,
+                       Double score,
                        Map<String, String> tags,
                        Boolean anonymous,
                        Boolean rejected)
@@ -69,7 +69,7 @@ public class Score
     public UUID getScoreId()               { return scoreId; }
     public Category getCategory()          { return category; }
     public User getUser()                  { return user; }
-    public Float getScore()                { return score; }
+    public Double getScore()                { return score; }
     public Map<String, String> getTags()   { return tags; }
     public Boolean getAnonymous()          { return anonymous; }
     public LocalDateTime getSubmittedAt()  { return submittedAt; }
@@ -95,7 +95,7 @@ public class Score
     private User user;
 
     @Column(name = "score_value", nullable = false)
-    private Float score;
+    private Double score;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "tags", columnDefinition = "jsonb")

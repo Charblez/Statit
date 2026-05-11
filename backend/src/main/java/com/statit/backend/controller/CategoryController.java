@@ -61,6 +61,8 @@ public class CategoryController
                 request.units(),
                 tags,
                 request.sortOrder(),
+                request.lowerLimit(),
+                request.upperLimit(),
                 foundingUser
         );
 
@@ -109,7 +111,9 @@ public class CategoryController
                 request.description(),
                 request.tags(),
                 request.units(),
-                request.sortOrder()
+                request.sortOrder(),
+                request.lowerLimit(),
+                request.upperLimit()
         );
 
         CategoryResponse response = CategoryResponse.fromCategory(updated, "Category updated successfully");
@@ -123,8 +127,9 @@ public class CategoryController
         String name = category.getName();
         categoryService.deleteCategory(categoryId);
 
+        // Added two extra nulls for lowerLimit and upperLimit
         return ResponseEntity.ok(new CategoryResponse(
-                categoryId, name, null, null, null, null, null,
+                categoryId, name, null, null, null, null, null, null, null,
                 "Category deleted successfully"
         ));
     }

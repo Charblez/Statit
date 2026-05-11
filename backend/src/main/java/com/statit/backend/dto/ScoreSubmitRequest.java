@@ -22,7 +22,7 @@ import java.util.UUID;
 //----------------------------------------------------------------------------------------------------
 public record ScoreSubmitRequest(@JsonProperty("user_id") UUID userId,
                                  @JsonProperty("category_id") UUID categoryId,
-                                 Float score,
+                                 Double score,
                                  Map<String, String> tags,
                                  Boolean anonymous)
 {

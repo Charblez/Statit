@@ -54,8 +54,19 @@ public class CategoryService
                                    String units,
                                    List<String> tags,
                                    Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
                                    User foundingUser)
     {
+        if (lowerLimit == null || upperLimit == null) {
+            throw new IllegalArgumentException("Lower limit and upper limit are required.");
+        }
+        
+        if(lowerLimit > upperLimit) {
+            throw new IllegalArgumentException("Lower limit cannot be greater than upper limit.");
+        }
+        // ----------------------
+
         //Check if category exists already
         if(categoryRepository.findByCategoryName(name).isPresent())
         {
@@ -69,7 +80,9 @@ public class CategoryService
                 units,
                 tags,
                 sortOrder,
-                foundingUser
+                foundingUser,
+                lowerLimit,
+                upperLimit
         );
 
         //Re-assign to ensure get UUID from database
@@ -87,15 +100,25 @@ public class CategoryService
                                    String description,
                                    List<String> tags,
                                    String units,
-                                   Boolean sortOrder)
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit)
     {
+        // --- ADD THIS CHECK ---
+        if (lowerLimit == null || upperLimit == null) {
+            throw new IllegalArgumentException("Lower limit and upper limit are required.");
+        }
+        
+        if(lowerLimit > upperLimit) {
+            throw new IllegalArgumentException("Lower limit cannot be greater than upper limit.");
+        }
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
 
-        category.update(name, description, units, tags, sortOrder);
+        category.update(name, description, units, tags, sortOrder, lowerLimit, upperLimit);
         return categoryRepository.save(category);
     }
-
+    
     public Category getCategory(UUID categoryId)
     {
         return categoryRepository.findById(categoryId)

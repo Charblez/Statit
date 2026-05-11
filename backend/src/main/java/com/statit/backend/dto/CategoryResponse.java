@@ -27,6 +27,8 @@ public record CategoryResponse(UUID categoryId,
                                String units,
                                List<String> tags,
                                Boolean sortOrder,
+                               Double lowerLimit,
+                               Double upperLimit,
                                LocalDateTime createdAt,
                                String message)
 {
@@ -39,6 +41,8 @@ public record CategoryResponse(UUID categoryId,
                 category.getUnits(),
                 category.getTags(),
                 category.getSortOrder(),
+                category.getLowerLimit(),
+                category.getUpperLimit(),
                 category.getCreatedAt(),
                 message
         );

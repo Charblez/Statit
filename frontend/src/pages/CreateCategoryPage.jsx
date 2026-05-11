@@ -11,17 +11,38 @@ export default function CreateCategoryPage({ currentUser }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [lowerLimit, setLowerLimit] = useState('');
+  const [upperLimit, setUpperLimit] = useState('');
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      if (name.length > 70) {
+        setError('Category name must be 70 characters or less.');
+        setLoading(false);
+        return;
+      }
+
+        if (units.length > 30) {
+        setError('Units must be 30 characters or less.');
+        setLoading(false);
+        return;
+      }
+
       const tagList = tags
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
+
+      const overlongTags = tagList.filter((t) => t.length > 20);
+      if (overlongTags.length > 0) {
+        setError('Each tag must be 20 characters or less.');
+        setLoading(false);
+        return; 
+      }
 
       await createCategory({
         name,
@@ -30,6 +51,8 @@ export default function CreateCategoryPage({ currentUser }) {
         tags: tagList,
         sort_order: sortOrder,
         founding_username: currentUser.username,
+        lower_limit: parseFloat(lowerLimit), // <-- Changed
+        upper_limit: parseFloat(upperLimit), // <-- Changed
       });
 
       navigate('/');
@@ -66,7 +89,8 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Typing Speed"
+                placeholder="e.g. Typing Speed (max 70 chars)"
+                maxLength={70}
                 required
               />
             </div>
@@ -87,7 +111,8 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={units}
                 onChange={(e) => setUnits(e.target.value)}
-                placeholder="e.g. WPM, kg, seconds"
+                placeholder="e.g. WPM, kg, seconds (max 30 chars)"
+                maxLength={30}
                 required
               />
             </div>
@@ -98,7 +123,33 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="e.g. fitness, speed, gaming"
+                placeholder="e.g. fitness, speed (max 20 chars each)"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Lower Limit (Required)</label>
+              <input
+                className="input"
+                type="number"
+                step="any" /* Allows negatives and decimals */
+                value={lowerLimit}
+                onChange={(e) => setLowerLimit(e.target.value)}
+                placeholder="e.g. -1000"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Upper Limit (Required)</label>
+              <input
+                className="input"
+                type="number"
+                step="any"
+                value={upperLimit}
+                onChange={(e) => setUpperLimit(e.target.value)}
+                placeholder="e.g. 1000"
+                required
               />
             </div>
 
@@ -121,6 +172,7 @@ export default function CreateCategoryPage({ currentUser }) {
                 </button>
               </div>
             </div>
+
 
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
               {loading ? 'Creating...' : 'Create Category'}

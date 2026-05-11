@@ -38,7 +38,9 @@ public class Category
                     String units,
                     List<String> tags,
                     Boolean sortOrder,
-                    User foundingUser)
+                    User foundingUser,
+                    Double lowerLimit,
+                    Double upperLimit)
     {
         this.categoryName = categoryName;
         this.description = description;
@@ -46,6 +48,8 @@ public class Category
         if(tags != null) addTags(tags);
         this.sortOrder = sortOrder;
         this.foundingUser = foundingUser;
+        this.lowerLimit = lowerLimit;
+        this.upperLimit = upperLimit;
     }
 
     //------------------------------------------------------------------------------------------------
@@ -55,13 +59,17 @@ public class Category
                        String description,
                        String units,
                        List<String> tags,
-                       Boolean sortOrder)
+                       Boolean sortOrder,
+                       Double lowerLimit,
+                       Double upperLimit)
     {
         this.categoryName = categoryName;
         this.description = description;
         this.units = units;
         if(tags != null) addTags(tags);
         this.sortOrder = sortOrder;
+        this.lowerLimit = lowerLimit;
+        this.upperLimit = upperLimit;
     }
 
     public void addTag(String tag)
@@ -74,7 +82,6 @@ public class Category
     {
         for(String tag : tags) addTag(tag);
     }
-
 
     public void removeTag(String tag)
     {
@@ -90,12 +97,16 @@ public class Category
     public String getUnits()                       { return units; }
     public Boolean getSortOrder()                  { return sortOrder; }
     public User getFoundingUser()                  { return foundingUser; }
+    public Double getLowerLimit()                  { return lowerLimit; }
+    public Double getUpperLimit()                  { return upperLimit; }
     public LocalDateTime getCreatedAt()            { return createdAt; }
 
     //Setters
     public void setName(String name)                { this.categoryName = name; }
     public void setDescription(String description)  { this.description = description; }
     public void setTags(List<String> tags)          { this.tags = tags; }
+    public void setLowerLimit(Double lowerLimit)    { this.lowerLimit = lowerLimit; }
+    public void setUpperLimit(Double upperLimit)    { this.upperLimit = upperLimit; }
 
     //------------------------------------------------------------------------------------------------
     // Private Variables
@@ -120,6 +131,12 @@ public class Category
 
     @Column(name = "sort_order", nullable = false)
     private Boolean sortOrder;
+
+    @Column(name = "lower_limit", nullable = false)
+    private Double lowerLimit;
+
+    @Column(name = "upper_limit", nullable = false)
+    private Double upperLimit;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "founding_user_id", nullable = false)
