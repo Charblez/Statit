@@ -6,6 +6,7 @@ import com.statit.backend.model.GlobalBaseline;
 import com.statit.backend.model.User;
 import com.statit.backend.repository.CategoryRepository;
 import com.statit.backend.repository.GlobalBaselineRepository;
+import com.statit.backend.repository.GlobalDatasetPointRepository;
 import com.statit.backend.repository.ScoreRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class CategoryServiceTest
 {
     @Mock private CategoryRepository categoryRepository;
     @Mock private GlobalBaselineRepository globalBaselineRepository;
+    @Mock private GlobalDatasetPointRepository globalDatasetPointRepository;
     @Mock private ScoreRepository scoreRepository;
 
     @InjectMocks private CategoryService categoryService;
@@ -165,6 +167,7 @@ class CategoryServiceTest
 
         verify(scoreRepository).deleteAllByCategory(existing);
         verify(globalBaselineRepository).deleteAllByCategory(existing);
+        verify(globalDatasetPointRepository).deleteAllByCategory(existing);
         verify(categoryRepository).delete(existing);
     }
 

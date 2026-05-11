@@ -13,6 +13,7 @@ package com.statit.backend.repository;
 // Imports
 //----------------------------------------------------------------------------------------------------
 import com.statit.backend.model.Category;
+import com.statit.backend.model.CategoryScope;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -32,12 +33,16 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>
     //------------------------------------------------------------------------------------------------
     Optional<Category> findByCategoryName(String categoryName);
 
+    Optional<Category> findByGlobalSourceKey(String globalSourceKey);
+
     //------------------------------------------------------------------------------------------------
     // Paginated Category Queries
     //------------------------------------------------------------------------------------------------
     Page<Category> findAllByOrderByCategoryNameAsc(Pageable pageable);
 
     Page<Category> findAllByLiveTrueOrderByCategoryNameAsc(Pageable pageable);
+
+    Page<Category> findAllByLiveTrueAndCategoryScopeOrderByCategoryNameAsc(CategoryScope categoryScope, Pageable pageable);
 
     Page<Category> findAllByLiveFalseOrderByCreatedAtAsc(Pageable pageable);
 }

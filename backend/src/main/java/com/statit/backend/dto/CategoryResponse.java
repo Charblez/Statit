@@ -12,7 +12,9 @@ package com.statit.backend.dto;
 //----------------------------------------------------------------------------------------------------
 // Imports
 //----------------------------------------------------------------------------------------------------
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.statit.backend.model.Category;
+import com.statit.backend.model.CategoryScope;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +32,9 @@ public record CategoryResponse(UUID categoryId,
                                Double lowerLimit,
                                Double upperLimit,
                                String imageData,
+                               CategoryScope categoryScope,
+                               String globalSourceKey,
+                               @JsonProperty("isGlobal") Boolean isGlobal,
                                LocalDateTime createdAt,
                                Boolean live,
                                String message)
@@ -46,6 +51,9 @@ public record CategoryResponse(UUID categoryId,
                 category.getLowerLimit(),
                 category.getUpperLimit(),
                 category.getImageData(),
+                category.getCategoryScope(),
+                category.getGlobalSourceKey(),
+                category.isGlobal(),
                 category.getCreatedAt(),
                 category.getLive(),
                 message

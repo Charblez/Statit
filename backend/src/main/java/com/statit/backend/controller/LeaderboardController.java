@@ -12,6 +12,7 @@ package com.statit.backend.controller;
 //----------------------------------------------------------------------------------------------------
 // Imports
 //----------------------------------------------------------------------------------------------------
+import com.statit.backend.dto.CorrelationResponse;
 import com.statit.backend.dto.GlobalBaselineResponse;
 import com.statit.backend.dto.LeaderboardResponse;
 import com.statit.backend.dto.LeaderboardSnapshotResponse;
@@ -121,6 +122,14 @@ public class LeaderboardController
         }
 
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{categoryId}/correlation")
+    public ResponseEntity<CorrelationResponse> getCorrelation(@PathVariable UUID categoryId,
+                                                              @RequestParam UUID otherCategoryId)
+    {
+        CorrelationResponse response = scoreService.getCorrelation(categoryId, otherCategoryId);
+        return ResponseEntity.ok(response);
     }
 
     //------------------------------------------------------------------------------------------------

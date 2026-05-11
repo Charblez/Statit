@@ -21,7 +21,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -74,19 +73,20 @@ public class ScoreController
     }
 
     @GetMapping("/user/{username}")
-    public ResponseEntity<List<ScoreResponse>> getUserScores(@PathVariable String username,
-                                                              @RequestParam(defaultValue = "0") int page,
-                                                              @RequestParam(defaultValue = "25") int size)
+    public ResponseEntity<List<ScoreInfoResponse>> getUserScores(@PathVariable String username,
+                                                                 @RequestParam(defaultValue = "0") int page,
+                                                                 @RequestParam(defaultValue = "25") int size)
     {
-        Page<Score> scores = scoreService.getUserScores(username, page, size);
-        List<ScoreResponse> responses = new ArrayList<>();
+        Page<ScoreInfoResponse> scores = scoreService.getUserBestScoreInfo(username, page, size);
+        return ResponseEntity.ok(scores.getContent());
+    }
 
-        for(Score score : scores.getContent())
-        {
-            responses.add(ScoreResponse.fromScore(score, null));
-        }
-
-        return ResponseEntity.ok(responses);
+    @GetMapping("/user/{username}/category/{categoryId}/top")
+    public ResponseEntity<ScoreInfoResponse> getUserTopScoreForCategory(@PathVariable String username,
+                                                                        @PathVariable UUID categoryId)
+    {
+        ScoreInfoResponse response = scoreService.getUserTopScoreInfoForCategory(username, categoryId);
+        return ResponseEntity.ok(response);
     }
 
     //------------------------------------------------------------------------------------------------

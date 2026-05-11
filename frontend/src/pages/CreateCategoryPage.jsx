@@ -134,7 +134,7 @@ const handleSubmit = async (e) => {
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Typing Speed (max 70 chars)"
+                placeholder="e.g. Push Ups (max 70 chars)"
                 maxLength={70}
                 required
               />

@@ -74,6 +74,7 @@ public class Category
         this.lowerLimit = lowerLimit;
         this.upperLimit = upperLimit;
         this.imageData = imageData;
+        this.categoryScope = CategoryScope.LOCAL;
     }
 
     //------------------------------------------------------------------------------------------------
@@ -146,8 +147,11 @@ public class Category
     public Double getLowerLimit()                  { return lowerLimit; }
     public Double getUpperLimit()                  { return upperLimit; }
     public String getImageData()                   { return imageData; }
+    public CategoryScope getCategoryScope()        { return categoryScope; }
+    public String getGlobalSourceKey()             { return globalSourceKey; }
     public LocalDateTime getCreatedAt()            { return createdAt; }
     public Boolean getLive()                       { return live != null && live; }
+    public boolean isGlobal()                      { return categoryScope == CategoryScope.GLOBAL; }
 
     //Setters
     public void setName(String name)                { this.categoryName = name; }
@@ -156,7 +160,27 @@ public class Category
     public void setLowerLimit(Double lowerLimit)    { this.lowerLimit = lowerLimit; }
     public void setUpperLimit(Double upperLimit)    { this.upperLimit = upperLimit; }
     public void setImageData(String imageData)      { this.imageData = imageData; }
+    public void setCategoryScope(CategoryScope categoryScope)
+    {
+        this.categoryScope = categoryScope != null ? categoryScope : CategoryScope.LOCAL;
+    }
+    public void setGlobalSourceKey(String globalSourceKey) { this.globalSourceKey = globalSourceKey; }
     public void setLive(Boolean live)               { this.live = live != null && live; }
+
+    @PrePersist
+    @PreUpdate
+    private void applyCategoryDefaults()
+    {
+        if(categoryScope == null)
+        {
+            categoryScope = CategoryScope.LOCAL;
+        }
+        if(globalSourceKey == null || globalSourceKey.isBlank())
+        {
+            globalSourceKey = null;
+            categoryScope = CategoryScope.LOCAL;
+        }
+    }
 
     //------------------------------------------------------------------------------------------------
     // Private Variables
@@ -191,8 +215,15 @@ public class Category
     @Column(name = "image_data", columnDefinition = "text")
     private String imageData;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category_scope", nullable = false, length = 16, columnDefinition = "varchar(16) default 'LOCAL'")
+    private CategoryScope categoryScope = CategoryScope.LOCAL;
+
+    @Column(name = "global_source_key")
+    private String globalSourceKey;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "founding_user_id", nullable = false)
+    @JoinColumn(name = "founding_user_id")
     private User foundingUser;
 
     @CreationTimestamp
