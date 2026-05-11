@@ -12,6 +12,7 @@ package com.statit.backend.controller;
 //----------------------------------------------------------------------------------------------------
 // Imports
 //----------------------------------------------------------------------------------------------------
+import com.statit.backend.dto.CorrelationResponse;
 import com.statit.backend.dto.GlobalBaselineResponse;
 import com.statit.backend.dto.LeaderboardResponse;
 import com.statit.backend.dto.LeaderboardSnapshotResponse;
@@ -63,7 +64,7 @@ public class LeaderboardController
                                                             @RequestParam(defaultValue = "0") int page,
                                                             @RequestParam(defaultValue = "25") int size)
     {
-        Category category = categoryService.getCategory(categoryId);
+        Category category = categoryService.getLiveCategory(categoryId);
         Page<Score> scores = scoreService.getGlobalTopScores(categoryId, page, size);
 
         LeaderboardResponse response = LeaderboardResponse.fromPage(category, scores);
@@ -76,7 +77,7 @@ public class LeaderboardController
                                                                     @RequestParam(defaultValue = "25") int size,
                                                                     @RequestBody ScoreFilterRequest request)
     {
-        Category category = categoryService.getCategory(categoryId);
+        Category category = categoryService.getLiveCategory(categoryId);
         Page<Score> scores = scoreService.getFilteredTopScores(categoryId, request.tags(), page, size);
 
         LeaderboardResponse response = LeaderboardResponse.fromPage(category, scores);
@@ -88,7 +89,7 @@ public class LeaderboardController
                                                                               @RequestParam(defaultValue = "0") int page,
                                                                               @RequestParam(defaultValue = "25") int size)
     {
-        Category category = categoryService.getCategory(categoryId);
+        Category category = categoryService.getLiveCategory(categoryId);
         Page<Score> scores = scoreService.getGlobalTopScores(categoryId, page, size);
         LeaderboardResponse leaderboardResponse = LeaderboardResponse.fromPage(category, scores);
 
@@ -111,7 +112,7 @@ public class LeaderboardController
     @GetMapping("/{categoryId}/baselines")
     public ResponseEntity<List<GlobalBaselineResponse>> getBaselineStats(@PathVariable UUID categoryId)
     {
-        Category category = categoryService.getCategory(categoryId);
+        Category category = categoryService.getLiveCategory(categoryId);
         List<GlobalBaseline> baselines = globalBaselineRepository.findAllByCategory(category);
         List<GlobalBaselineResponse> responses = new ArrayList<>();
 
@@ -121,6 +122,14 @@ public class LeaderboardController
         }
 
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{categoryId}/correlation")
+    public ResponseEntity<CorrelationResponse> getCorrelation(@PathVariable UUID categoryId,
+                                                              @RequestParam UUID otherCategoryId)
+    {
+        CorrelationResponse response = scoreService.getCorrelation(categoryId, otherCategoryId);
+        return ResponseEntity.ok(response);
     }
 
     //------------------------------------------------------------------------------------------------

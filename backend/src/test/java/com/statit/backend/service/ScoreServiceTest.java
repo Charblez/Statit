@@ -61,9 +61,11 @@ class ScoreServiceTest
         TestUtils.setField(user, "userId", userId);
 
         descCategory = new Category("Run", "d", "s", null, true, user);
+        descCategory.setLive(true);
         TestUtils.setField(descCategory, "categoryId", categoryId);
 
         ascCategory = new Category("Time", "d", "s", null, false, user);
+        ascCategory.setLive(true);
         TestUtils.setField(ascCategory, "categoryId", categoryId);
     }
 
@@ -180,6 +182,18 @@ class ScoreServiceTest
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class,
                 () -> scoreService.submitScore(userId, categoryId, 5f, null, false));
+    }
+
+    @Test
+    void submitScorePendingCategoryThrows()
+    {
+        descCategory.setLive(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(descCategory));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> scoreService.submitScore(userId, categoryId, 5f, null, false));
+        verify(scoreRepository, never()).save(any());
     }
 
     @Test
@@ -386,7 +400,7 @@ class ScoreServiceTest
         when(scoreRepository.findById(score.getScoreId())).thenReturn(Optional.of(score));
         when(scoreRepository.findFirstByCategoryAndUserOrderByScoreDesc(descCategory, user))
                 .thenReturn(Optional.of(score));
-        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10f)).thenReturn(2L);
+        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10.0)).thenReturn(2L);
         when(scoreRepository.countDistinctUsersByCategoryAndRejectedFalse(categoryId)).thenReturn(10L);
 
         GlobalBaseline baseline = new GlobalBaseline(descCategory, new HashMap<>(),
@@ -412,7 +426,7 @@ class ScoreServiceTest
         when(scoreRepository.findById(score.getScoreId())).thenReturn(Optional.of(score));
         when(scoreRepository.findFirstByCategoryAndUserOrderByScoreAsc(ascCategory, user))
                 .thenReturn(Optional.of(score));
-        when(scoreRepository.countUsersWithBetterScoreAsc(categoryId, 3f)).thenReturn(0L);
+        when(scoreRepository.countUsersWithBetterScoreAsc(categoryId, 3.0)).thenReturn(0L);
         when(scoreRepository.countDistinctUsersByCategoryAndRejectedFalse(categoryId)).thenReturn(5L);
 
         GlobalBaseline baseline = new GlobalBaseline(ascCategory, new HashMap<>(),
@@ -434,7 +448,7 @@ class ScoreServiceTest
         when(scoreRepository.findById(score.getScoreId())).thenReturn(Optional.of(score));
         when(scoreRepository.findFirstByCategoryAndUserOrderByScoreDesc(descCategory, user))
                 .thenReturn(Optional.of(score));
-        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10f)).thenReturn(0L);
+        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10.0)).thenReturn(0L);
         when(scoreRepository.countDistinctUsersByCategoryAndRejectedFalse(categoryId)).thenReturn(1L);
         when(globalBaselineRepository.findByCategory(descCategory)).thenReturn(Optional.empty());
 
@@ -453,7 +467,7 @@ class ScoreServiceTest
         when(scoreRepository.findById(score.getScoreId())).thenReturn(Optional.of(score));
         when(scoreRepository.findFirstByCategoryAndUserOrderByScoreDesc(descCategory, user))
                 .thenReturn(Optional.of(score));
-        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 5f)).thenReturn(0L);
+        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 5.0)).thenReturn(0L);
         when(scoreRepository.countDistinctUsersByCategoryAndRejectedFalse(categoryId)).thenReturn(1L);
 
         GlobalBaseline baseline = new GlobalBaseline(descCategory, new HashMap<>(),
@@ -472,7 +486,7 @@ class ScoreServiceTest
         when(scoreRepository.findById(score.getScoreId())).thenReturn(Optional.of(score));
         when(scoreRepository.findFirstByCategoryAndUserOrderByScoreDesc(descCategory, user))
                 .thenReturn(Optional.of(score));
-        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10f)).thenReturn(0L);
+        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10.0)).thenReturn(0L);
         when(scoreRepository.countDistinctUsersByCategoryAndRejectedFalse(categoryId)).thenReturn(1L);
 
         GlobalBaseline baseline = new GlobalBaseline(descCategory, new HashMap<>(),
@@ -492,7 +506,7 @@ class ScoreServiceTest
         when(scoreRepository.findById(score.getScoreId())).thenReturn(Optional.of(score));
         when(scoreRepository.findFirstByCategoryAndUserOrderByScoreDesc(descCategory, user))
                 .thenReturn(Optional.of(score));
-        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10f)).thenReturn(0L);
+        when(scoreRepository.countUsersWithBetterScoreDesc(categoryId, 10.0)).thenReturn(0L);
         when(scoreRepository.countDistinctUsersByCategoryAndRejectedFalse(categoryId)).thenReturn(1L);
         when(globalBaselineRepository.findByCategory(descCategory)).thenReturn(Optional.empty());
 

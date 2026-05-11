@@ -16,10 +16,15 @@ const categoryMatchesSearch = (categoryName, query) => {
   return true;
 };
 
+const onlyPublicCategories = (categories) =>
+  (Array.isArray(categories) ? categories : []).filter((category) => category.live !== false);
+
+const getCategoryImage = (category) => category?.imageData || category?.image_data || '';
+
 export default function HomePage() {
   const [categories, setCategories] = useState(() => {
     const cached = sessionStorage.getItem('categoriesCache');
-    return cached ? JSON.parse(cached) : [];
+    return cached ? onlyPublicCategories(JSON.parse(cached)) : [];
   });
   const [loading, setLoading] = useState(() => !sessionStorage.getItem('categoriesCache'));
   const [error, setError] = useState('');
@@ -33,7 +38,7 @@ export default function HomePage() {
   useEffect(() => {
     getCategories(0, 100)
       .then((data) => {
-        const list = data.categories || [];
+        const list = onlyPublicCategories(data.categories);
         setCategories(list);
         sessionStorage.setItem('categoriesCache', JSON.stringify(list));
       })
@@ -63,28 +68,33 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="card-grid">
-          {visibleCategories.map((cat) => (
-            <div
-              key={cat.categoryId}
-              className="category-card"
-              onClick={() => navigate(`/category/${cat.categoryId}`)}
-            >
-              <h3>{cat.name}</h3>
-              {cat.description && (
-                <p className="card-meta">{cat.description}</p>
-              )}
-              <p className="card-meta">
-                Unit: {cat.units} &middot; {cat.sortOrder ? 'Higher is better' : 'Lower is better'}
-              </p>
-              {cat.tags && cat.tags.length > 0 && (
-                <div className="card-tags">
-                  {cat.tags.map((t) => (
-                    <span key={t} className="tag">{t}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          {visibleCategories.map((cat) => {
+            const image = getCategoryImage(cat);
+
+            return (
+              <div
+                key={cat.categoryId}
+                className={`category-card ${image ? 'has-image' : ''}`}
+                style={image ? { '--category-image': `url("${image}")` } : undefined}
+                onClick={() => navigate(`/category/${cat.categoryId}`)}
+              >
+                <h3>{cat.name}</h3>
+                {cat.description && (
+                  <p className="card-meta">{cat.description}</p>
+                )}
+                <p className="card-meta">
+                  Unit: {cat.units} &middot; {cat.sortOrder ? 'Higher is better' : 'Lower is better'}
+                </p>
+                {cat.tags && cat.tags.length > 0 && (
+                  <div className="card-tags">
+                    {cat.tags.map((t) => (
+                      <span key={t} className="tag">{t}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

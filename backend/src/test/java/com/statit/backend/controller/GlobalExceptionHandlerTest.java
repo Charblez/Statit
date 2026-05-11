@@ -15,10 +15,10 @@ class GlobalExceptionHandlerTest
     @Test
     void illegalArgumentReturns400WithMessage()
     {
-        ResponseEntity<Map<String, String>> response =
+        ResponseEntity<String> response =
                 handler.handleIllegalArgument(new IllegalArgumentException("bad input"));
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("bad input", response.getBody().get("error"));
+        assertEquals("bad input", response.getBody());
     }
 
     @Test

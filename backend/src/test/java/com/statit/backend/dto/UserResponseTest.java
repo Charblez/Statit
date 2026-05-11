@@ -42,7 +42,7 @@ class UserResponseTest
     void recordHonorsExplicitConstructor()
     {
         UUID id = UUID.randomUUID();
-        UserResponse response = new UserResponse(id, "bob", null, null, null, null, "deleted");
+        UserResponse response = new UserResponse(id, "bob", null, null, null, null, false, "deleted");
         assertEquals(id, response.userId());
         assertEquals("bob", response.username());
         assertEquals("deleted", response.message());

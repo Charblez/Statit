@@ -25,6 +25,7 @@ public record UserResponse(UUID userId,
                            LocalDate birthday,
                            Map<String, String> demographics,
                            LocalDateTime createdAt,
+                           Boolean admin,
                            String message)
 {
     public static UserResponse fromUser(User user, String message)
@@ -36,6 +37,7 @@ public record UserResponse(UUID userId,
                 user.getBirthday(),
                 user.getDemographics(),
                 user.getCreatedAt(),
+                user.getAdmin(),
                 message
         );
     }

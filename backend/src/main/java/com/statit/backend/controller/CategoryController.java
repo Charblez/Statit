@@ -61,17 +61,20 @@ public class CategoryController
                 request.units(),
                 tags,
                 request.sortOrder(),
+                request.lowerLimit(),
+                request.upperLimit(),
+                request.imageData(),
                 foundingUser
         );
 
-        CategoryResponse response = CategoryResponse.fromCategory(category, "Category created successfully");
+        CategoryResponse response = CategoryResponse.fromCategory(category, "Category submitted for admin approval");
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> getCategory(@PathVariable UUID categoryId)
     {
-        Category category = categoryService.getCategory(categoryId);
+        Category category = categoryService.getLiveCategory(categoryId);
         CategoryResponse response = CategoryResponse.fromCategory(category, null);
         return ResponseEntity.ok(response);
     }
@@ -97,36 +100,6 @@ public class CategoryController
         );
 
         return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/{categoryId}")
-    public ResponseEntity<CategoryResponse> updateCategory(@PathVariable UUID categoryId,
-                                                           @RequestBody CategoryCreateRequest request)
-    {
-        Category updated = categoryService.updateCategory(
-                categoryId,
-                request.name(),
-                request.description(),
-                request.tags(),
-                request.units(),
-                request.sortOrder()
-        );
-
-        CategoryResponse response = CategoryResponse.fromCategory(updated, "Category updated successfully");
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{categoryId}")
-    public ResponseEntity<CategoryResponse> deleteCategory(@PathVariable UUID categoryId)
-    {
-        Category category = categoryService.getCategory(categoryId);
-        String name = category.getName();
-        categoryService.deleteCategory(categoryId);
-
-        return ResponseEntity.ok(new CategoryResponse(
-                categoryId, name, null, null, null, null, null,
-                "Category deleted successfully"
-        ));
     }
 
     //------------------------------------------------------------------------------------------------

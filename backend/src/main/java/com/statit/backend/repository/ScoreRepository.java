@@ -33,6 +33,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ScoreRepository extends JpaRepository<Score, UUID>
 {
+    interface CorrelationPointProjection
+    {
+        UUID getUserId();
+        Double getPrimaryScore();
+        Double getSecondaryScore();
+    }
+
     //------------------------------------------------------------------------------------------------
     // Single Score Lookups
     //------------------------------------------------------------------------------------------------
@@ -77,6 +84,46 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             nativeQuery = true)
     Page<Score> findTopScoresPerUserAsc(@Param("categoryId") UUID categoryId, Pageable pageable);
 
+    @Query(value = """
+            SELECT
+                ranked.score_id,
+                ranked.category_id,
+                ranked.user_id,
+                ranked.score_value,
+                ranked.tags,
+                ranked.is_anonymous,
+                ranked.rejected,
+                ranked.submitted_at
+            FROM (
+                SELECT
+                    s.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY s.category_id
+                        ORDER BY
+                            CASE WHEN c.sort_order = true THEN s.score_value END DESC,
+                            CASE WHEN c.sort_order = false THEN s.score_value END ASC,
+                            s.submitted_at DESC
+                    ) AS rn
+                FROM scores s
+                INNER JOIN categories c ON c.category_id = s.category_id
+                WHERE s.user_id = :userId
+                  AND s.rejected = false
+                  AND c.live = true
+            ) ranked
+            WHERE ranked.rn = 1
+            ORDER BY ranked.submitted_at DESC
+            """,
+            countQuery = """
+                    SELECT COUNT(DISTINCT s.category_id)
+                    FROM scores s
+                    INNER JOIN categories c ON c.category_id = s.category_id
+                    WHERE s.user_id = :userId
+                      AND s.rejected = false
+                      AND c.live = true
+                    """,
+            nativeQuery = true)
+    Page<Score> findBestScoresPerCategoryForUser(@Param("userId") UUID userId, Pageable pageable);
+
     //------------------------------------------------------------------------------------------------
     // Rank Computation Queries
     //------------------------------------------------------------------------------------------------
@@ -92,7 +139,12 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             ") best WHERE best.score_value > :scoreValue",
             nativeQuery = true)
     long countUsersWithBetterScoreDesc(@Param("categoryId") UUID categoryId,
-                                       @Param("scoreValue") Float scoreValue);
+                                       @Param("scoreValue") Double scoreValue);
+
+    default long countUsersWithBetterScoreDesc(UUID categoryId, Float scoreValue)
+    {
+        return countUsersWithBetterScoreDesc(categoryId, scoreValue != null ? scoreValue.doubleValue() : null);
+    }
 
     @Query(value = "SELECT COUNT(*) FROM (" +
             "SELECT DISTINCT ON (s.user_id) s.score_value FROM scores s " +
@@ -101,7 +153,12 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             ") best WHERE best.score_value < :scoreValue",
             nativeQuery = true)
     long countUsersWithBetterScoreAsc(@Param("categoryId") UUID categoryId,
-                                      @Param("scoreValue") Float scoreValue);
+                                      @Param("scoreValue") Double scoreValue);
+
+    default long countUsersWithBetterScoreAsc(UUID categoryId, Float scoreValue)
+    {
+        return countUsersWithBetterScoreAsc(categoryId, scoreValue != null ? scoreValue.doubleValue() : null);
+    }
 
     //------------------------------------------------------------------------------------------------
     // Filtered Leaderboards
@@ -133,5 +190,56 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
     Page<Score> findFilteredTopScoresPerUserAsc(@Param("categoryId") UUID categoryId,
                                                 @Param("tags") String tagsJson,
                                                 Pageable pageable);
+
+    //------------------------------------------------------------------------------------------------
+    // Correlation Queries
+    //------------------------------------------------------------------------------------------------
+    @Query(value = """
+            WITH primary_scores AS (
+                SELECT
+                    s.user_id,
+                    s.score_value AS primary_score,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY s.user_id
+                        ORDER BY
+                            CASE WHEN :primaryDescending = true THEN s.score_value END DESC,
+                            CASE WHEN :primaryDescending = false THEN s.score_value END ASC,
+                            s.submitted_at DESC
+                    ) AS rn
+                FROM scores s
+                WHERE s.category_id = :primaryCategoryId
+                  AND s.rejected = false
+            ),
+            secondary_scores AS (
+                SELECT
+                    s.user_id,
+                    s.score_value AS secondary_score,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY s.user_id
+                        ORDER BY
+                            CASE WHEN :secondaryDescending = true THEN s.score_value END DESC,
+                            CASE WHEN :secondaryDescending = false THEN s.score_value END ASC,
+                            s.submitted_at DESC
+                    ) AS rn
+                FROM scores s
+                WHERE s.category_id = :secondaryCategoryId
+                  AND s.rejected = false
+            )
+            SELECT
+                p.user_id AS "userId",
+                p.primary_score AS "primaryScore",
+                s.secondary_score AS "secondaryScore"
+            FROM primary_scores p
+            INNER JOIN secondary_scores s ON p.user_id = s.user_id
+            WHERE p.rn = 1
+              AND s.rn = 1
+            ORDER BY p.primary_score ASC
+            """,
+            nativeQuery = true)
+    List<CorrelationPointProjection> findPairedTopScoresForCorrelation(
+            @Param("primaryCategoryId") UUID primaryCategoryId,
+            @Param("secondaryCategoryId") UUID secondaryCategoryId,
+            @Param("primaryDescending") boolean primaryDescending,
+            @Param("secondaryDescending") boolean secondaryDescending);
 
 }

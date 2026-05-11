@@ -6,6 +6,7 @@ import com.statit.backend.model.GlobalBaseline;
 import com.statit.backend.model.User;
 import com.statit.backend.repository.CategoryRepository;
 import com.statit.backend.repository.GlobalBaselineRepository;
+import com.statit.backend.repository.GlobalDatasetPointRepository;
 import com.statit.backend.repository.ScoreRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class CategoryServiceTest
 {
     @Mock private CategoryRepository categoryRepository;
     @Mock private GlobalBaselineRepository globalBaselineRepository;
+    @Mock private GlobalDatasetPointRepository globalDatasetPointRepository;
     @Mock private ScoreRepository scoreRepository;
 
     @InjectMocks private CategoryService categoryService;
@@ -54,7 +56,7 @@ class CategoryServiceTest
     }
 
     @Test
-    void createCategorySavesAndCreatesBaseline()
+    void createCategorySavesPendingCategoryWithoutBaseline()
     {
         when(categoryRepository.findByCategoryName("Cat")).thenReturn(Optional.empty());
         when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> {
@@ -64,14 +66,11 @@ class CategoryServiceTest
         });
 
         Category result = categoryService.createCategory("Cat", "d", "u",
-                Arrays.asList("a", "b"), true, founder);
+                Arrays.asList("a", "b"), true, 0.0, 100.0, founder);
 
         assertEquals("Cat", result.getName());
-        ArgumentCaptor<GlobalBaseline> captor = ArgumentCaptor.forClass(GlobalBaseline.class);
-        verify(globalBaselineRepository).save(captor.capture());
-        GlobalBaseline saved = captor.getValue();
-        assertEquals(0, saved.getSampleSize());
-        assertEquals("My Global Ranking Team", saved.getSourceName());
+        assertFalse(result.getLive());
+        verify(globalBaselineRepository, never()).save(any());
     }
 
     @Test
@@ -79,7 +78,7 @@ class CategoryServiceTest
     {
         when(categoryRepository.findByCategoryName("Cat")).thenReturn(Optional.of(existing));
         assertThrows(IllegalArgumentException.class,
-                () -> categoryService.createCategory("Cat", "d", "u", null, true, founder));
+                () -> categoryService.createCategory("Cat", "d", "u", null, true, 0.0, 100.0, founder));
         verify(categoryRepository, never()).save(any());
         verify(globalBaselineRepository, never()).save(any());
     }
@@ -91,12 +90,14 @@ class CategoryServiceTest
         when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Category result = categoryService.updateCategory(categoryId, "Cat2", "d2",
-                Arrays.asList("x"), "u2", false);
+                Arrays.asList("x"), "u2", false, 1.0, 99.0);
 
         assertEquals("Cat2", result.getName());
         assertEquals("d2", result.getDescription());
         assertEquals("u2", result.getUnits());
         assertEquals(false, result.getSortOrder());
+        assertEquals(1.0, result.getLowerLimit());
+        assertEquals(99.0, result.getUpperLimit());
         assertTrue(result.getTags().contains("x"));
     }
 
@@ -105,7 +106,7 @@ class CategoryServiceTest
     {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class, () ->
-                categoryService.updateCategory(categoryId, "n", "d", null, "u", true));
+                categoryService.updateCategory(categoryId, "n", "d", null, "u", true, 0.0, 100.0));
     }
 
     @Test
@@ -127,10 +128,34 @@ class CategoryServiceTest
     {
         Pageable pageable = PageRequest.of(0, 5);
         Page<Category> page = new PageImpl<>(List.of(existing), pageable, 1);
-        when(categoryRepository.findAllByOrderByCategoryNameAsc(pageable)).thenReturn(page);
+        when(categoryRepository.findAllByLiveTrueOrderByCategoryNameAsc(pageable)).thenReturn(page);
 
         Page<Category> result = categoryService.getAllCategories(pageable);
         assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void getLiveCategoryRejectsPendingCategory()
+    {
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existing));
+        assertThrows(IllegalArgumentException.class, () -> categoryService.getLiveCategory(categoryId));
+    }
+
+    @Test
+    void approveCategoryMarksLiveAndCreatesBaseline()
+    {
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existing));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(globalBaselineRepository.findByCategory(existing)).thenReturn(Optional.empty());
+
+        Category result = categoryService.approveCategory(categoryId);
+
+        assertTrue(result.getLive());
+        ArgumentCaptor<GlobalBaseline> captor = ArgumentCaptor.forClass(GlobalBaseline.class);
+        verify(globalBaselineRepository).save(captor.capture());
+        GlobalBaseline saved = captor.getValue();
+        assertEquals(0, saved.getSampleSize());
+        assertEquals("My Global Ranking Team", saved.getSourceName());
     }
 
     @Test
@@ -142,6 +167,7 @@ class CategoryServiceTest
 
         verify(scoreRepository).deleteAllByCategory(existing);
         verify(globalBaselineRepository).deleteAllByCategory(existing);
+        verify(globalDatasetPointRepository).deleteAllByCategory(existing);
         verify(categoryRepository).delete(existing);
     }
 

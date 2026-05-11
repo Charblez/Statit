@@ -9,30 +9,90 @@ export default function CreateCategoryPage({ currentUser }) {
   const [tags, setTags] = useState('');
   const [sortOrder, setSortOrder] = useState(true);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [lowerLimit, setLowerLimit] = useState('');
+  const [upperLimit, setUpperLimit] = useState('');
+  const [imageData, setImageData] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setImageData('');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageData(String(reader.result || ''));
+    reader.onerror = () => setError('Failed to read image.');
+    reader.readAsDataURL(file);
+  };
+
+const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     setLoading(true);
 
     try {
+      if (name.length > 70) {
+        setError('Category name must be 70 characters or less.');
+        setLoading(false);
+        return;
+      }
+
+        if (units.length > 30) {
+        setError('Units must be 30 characters or less.');
+        setLoading(false);
+        return;
+      }
+
       const tagList = tags
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
 
-      await createCategory({
+      const overlongTags = tagList.filter((t) => t.length > 20);
+      if (overlongTags.length > 0) {
+        setError('Each tag must be 20 characters or less.');
+        setLoading(false);
+        return; 
+      }
+
+      const created = await createCategory({
         name,
         description: description || null,
         units,
         tags: tagList,
         sort_order: sortOrder,
         founding_username: currentUser.username,
+        lower_limit: parseFloat(lowerLimit), // <-- Changed
+        upper_limit: parseFloat(upperLimit), // <-- Changed
+        image_data: imageData || null,
       });
 
-      navigate('/');
+      sessionStorage.removeItem('categoriesCache');
+
+      if (created.live) {
+        navigate(`/category/${created.categoryId}`);
+        return;
+      }
+
+      if (currentUser.admin) {
+        navigate('/admin');
+        return;
+      }
+
+      setMessage(created.message || 'Category submitted for admin approval.');
+      setName('');
+      setDescription('');
+      setUnits('');
+      setTags('');
+      setLowerLimit('');
+      setUpperLimit('');
+      setImageData('');
+      setSortOrder(true);
     } catch (err) {
       setError(err.message || 'Failed to create category');
     } finally {
@@ -57,6 +117,9 @@ export default function CreateCategoryPage({ currentUser }) {
         <h1 className="page-title">Create Category</h1>
 
         {error && <div className="error-banner">{error}</div>}
+        {message && (
+          <div className="status-banner">{message}</div>
+        )}
 
         <div className="panel">
           <form onSubmit={handleSubmit}>
@@ -66,7 +129,8 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Typing Speed"
+                placeholder="e.g. Push Ups (max 70 chars)"
+                maxLength={70}
                 required
               />
             </div>
@@ -87,7 +151,8 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={units}
                 onChange={(e) => setUnits(e.target.value)}
-                placeholder="e.g. WPM, kg, seconds"
+                placeholder="e.g. WPM, kg, seconds (max 30 chars)"
+                maxLength={30}
                 required
               />
             </div>
@@ -98,7 +163,46 @@ export default function CreateCategoryPage({ currentUser }) {
                 className="input"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="e.g. fitness, speed, gaming"
+                placeholder="e.g. fitness, speed (max 20 chars each)"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Category Image</label>
+              <input
+                className="input"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+              {imageData && (
+                <img className="image-upload-preview" src={imageData} alt="Category preview" />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Lower Limit (Required)</label>
+              <input
+                className="input"
+                type="number"
+                step="any" /* Allows negatives and decimals */
+                value={lowerLimit}
+                onChange={(e) => setLowerLimit(e.target.value)}
+                placeholder="e.g. -1000"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Upper Limit (Required)</label>
+              <input
+                className="input"
+                type="number"
+                step="any"
+                value={upperLimit}
+                onChange={(e) => setUpperLimit(e.target.value)}
+                placeholder="e.g. 1000"
+                required
               />
             </div>
 
@@ -122,8 +226,9 @@ export default function CreateCategoryPage({ currentUser }) {
               </div>
             </div>
 
+
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Category'}
+              {loading ? 'Submitting...' : 'Submit for Approval'}
             </button>
           </form>
         </div>

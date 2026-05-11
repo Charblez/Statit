@@ -39,6 +39,15 @@ public class Score
                  Map<String, String> tags,
                  Boolean anonymous)
     {
+        this(category, user, score != null ? score.doubleValue() : null, tags, anonymous);
+    }
+
+    public Score(Category category,
+                 User user,
+                 Double score,
+                 Map<String, String> tags,
+                 Boolean anonymous)
+    {
         this.category = category;
         this.user = user;
         this.score = score;
@@ -57,6 +66,16 @@ public class Score
                        Boolean anonymous,
                        Boolean rejected)
     {
+        update(category, user, score != null ? score.doubleValue() : null, tags, anonymous, rejected);
+    }
+
+    public void update(Category category,
+                       User user,
+                       Double score,
+                       Map<String, String> tags,
+                       Boolean anonymous,
+                       Boolean rejected)
+    {
         this.category = category;
         this.user = user;
         this.score = score;
@@ -69,7 +88,7 @@ public class Score
     public UUID getScoreId()               { return scoreId; }
     public Category getCategory()          { return category; }
     public User getUser()                  { return user; }
-    public Float getScore()                { return score; }
+    public Double getScore()                { return score; }
     public Map<String, String> getTags()   { return tags; }
     public Boolean getAnonymous()          { return anonymous; }
     public LocalDateTime getSubmittedAt()  { return submittedAt; }
@@ -95,7 +114,7 @@ public class Score
     private User user;
 
     @Column(name = "score_value", nullable = false)
-    private Float score;
+    private Double score;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "tags", columnDefinition = "jsonb")

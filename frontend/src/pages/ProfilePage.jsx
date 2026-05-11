@@ -9,27 +9,29 @@ export default function ProfilePage({ currentUser, onLogout }) {
 
   useEffect(() => {
     if (!currentUser) return;
-    setLoading(true);
-    getUserScores(currentUser.username, page, 25)
-      .then((data) => {
-        const allScores = data || [];
+    let cancelled = false;
 
-        const seen = new Map();
-        allScores.forEach((s) => {
-          const existing = seen.get(s.categoryId);
-          if (!existing || new Date(s.submittedAt) > new Date(existing.submittedAt)) {
-            seen.set(s.categoryId, s);
-          }
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      getUserScores(currentUser.username, page, 25)
+        .then((data) => {
+          if (cancelled) return;
+          const bestScores = data || [];
+          setScores(bestScores);
+          setHasMore(bestScores.length === 25);
+        })
+        .catch(() => {
+          if (!cancelled) setScores([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
         });
-        const deduped = Array.from(seen.values()).sort(
-          (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
-        );
+    });
 
-        setScores(deduped);
-        setHasMore(allScores.length === 25);
-      })
-      .catch(() => setScores([]))
-      .finally(() => setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser, page]);
 
   if (!currentUser) {
@@ -44,6 +46,14 @@ export default function ProfilePage({ currentUser, onLogout }) {
   }
 
   const demographics = currentUser.demographics || {};
+  const formatRank = (rank) => {
+    if (rank == null) return '-';
+    const n = Number(rank);
+    if (n === 1) return '1st';
+    if (n === 2) return '2nd';
+    if (n === 3) return '3rd';
+    return `${n}th`;
+  };
 
   return (
     <div className="page">
@@ -51,7 +61,7 @@ export default function ProfilePage({ currentUser, onLogout }) {
 
       <div className="profile-layout">
         <div className="panel">
-          <div className="panel-title">Account Info</div>
+          <div className="panel-title">Account Info{currentUser.admin ? ' (Admin)' : ''}</div>
           <div className="profile-info-item">
             <span className="profile-info-label">Username</span>
             <span>{currentUser.username}</span>
@@ -87,7 +97,7 @@ export default function ProfilePage({ currentUser, onLogout }) {
         </div>
 
         <div className="panel">
-          <div className="panel-title">Score History (Most Recent Per Category)</div>
+          <div className="panel-title">Best Scores</div>
 
           {loading ? (
             <div className="loading">Loading scores...</div>
@@ -103,6 +113,7 @@ export default function ProfilePage({ currentUser, onLogout }) {
                     <tr>
                       <th>Category</th>
                       <th>Score</th>
+                      <th>Rank</th>
                       <th>Anonymous</th>
                       <th>Submitted</th>
                     </tr>
@@ -112,6 +123,7 @@ export default function ProfilePage({ currentUser, onLogout }) {
                       <tr key={s.scoreId}>
                         <td style={{ fontWeight: 600 }}>{s.categoryName || '-'}</td>
                         <td className="score-cell">{s.score}</td>
+                        <td>{formatRank(s.rank)}</td>
                         <td>{s.anonymous ? 'Yes' : 'No'}</td>
                         <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           {s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '-'}

@@ -103,7 +103,7 @@ public class UserController
         userService.deleteUser(userId);
 
         return ResponseEntity.ok(new UserResponse(
-                userId, username, null, null, null, null,
+                userId, username, null, null, null, null, false,
                 "User deleted successfully"
         ));
     }

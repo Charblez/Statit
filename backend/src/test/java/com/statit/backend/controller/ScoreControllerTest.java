@@ -56,7 +56,7 @@ class ScoreControllerTest
     {
         ScoreSubmitRequest req = new ScoreSubmitRequest(user.getUserId(), category.getCategoryId(),
                 10f, null, false);
-        when(scoreService.submitScore(any(), any(), any(), any(), any())).thenReturn(score);
+        when(scoreService.submitScore(any(), any(), any(Double.class), any(), any())).thenReturn(score);
 
         ResponseEntity<ScoreResponse> response = scoreController.submitScore(req);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -89,22 +89,16 @@ class ScoreControllerTest
     @Test
     void getUserScoresReturnsList()
     {
-        Page<Score> page = new PageImpl<>(List.of(score));
-        when(scoreService.getUserScores(eq("alice"), anyInt(), anyInt())).thenReturn(page);
+        ScoreInfoResponse info = new ScoreInfoResponse(score.getScoreId(), 10f, "Cat",
+                category.getCategoryId(), "u", "alice", user.getUserId(), false,
+                new HashMap<>(), null, 1, 1L, 99.0, 1.5, 5f, 1f, 10);
+        Page<ScoreInfoResponse> page = new PageImpl<>(List.of(info));
+        when(scoreService.getUserBestScoreInfo(eq("alice"), anyInt(), anyInt())).thenReturn(page);
 
-        ResponseEntity<List<ScoreResponse>> response = scoreController.getUserScores("alice", 0, 25);
+        ResponseEntity<List<ScoreInfoResponse>> response = scoreController.getUserScores("alice", 0, 25);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
+        assertEquals(1, response.getBody().get(0).rank());
     }
 
-    @Test
-    void deleteScoreReturnsScoreWithMessageAndDeletes()
-    {
-        when(scoreService.getScore(score.getScoreId())).thenReturn(score);
-
-        ResponseEntity<ScoreResponse> response = scoreController.deleteScore(score.getScoreId());
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Score deleted successfully", response.getBody().message());
-        verify(scoreService).deleteScore(score.getScoreId());
-    }
 }

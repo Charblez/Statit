@@ -13,19 +13,26 @@ package com.statit.backend.service;
 // Imports
 //----------------------------------------------------------------------------------------------------
 import com.statit.backend.model.Category;
+import com.statit.backend.model.CategoryScope;
 import com.statit.backend.model.GlobalBaseline;
 import com.statit.backend.model.User;
 import com.statit.backend.repository.CategoryRepository;
 import com.statit.backend.repository.GlobalBaselineRepository;
+import com.statit.backend.repository.GlobalDatasetPointRepository;
 import com.statit.backend.repository.ScoreRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Base64;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 
 //----------------------------------------------------------------------------------------------------
 // Class Definition
@@ -38,11 +45,13 @@ public class CategoryService
     //------------------------------------------------------------------------------------------------
     public CategoryService(CategoryRepository categoryRepository,
                            GlobalBaselineRepository globalBaselineRepository,
-                           ScoreRepository scoreRepository)
+                           ScoreRepository scoreRepository,
+                           GlobalDatasetPointRepository globalDatasetPointRepository)
     {
         this.categoryRepository = categoryRepository;
         this.globalBaselineRepository = globalBaselineRepository;
         this.scoreRepository = scoreRepository;
+        this.globalDatasetPointRepository = globalDatasetPointRepository;
     }
 
     //------------------------------------------------------------------------------------------------
@@ -54,13 +63,50 @@ public class CategoryService
                                    String units,
                                    List<String> tags,
                                    Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
                                    User foundingUser)
     {
+        return createCategory(
+                name,
+                description,
+                units,
+                tags,
+                sortOrder,
+                lowerLimit,
+                upperLimit,
+                null,
+                foundingUser
+        );
+    }
+
+    @Transactional
+    public Category createCategory(String name,
+                                   String description,
+                                   String units,
+                                   List<String> tags,
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
+                                   String imageData,
+                                   User foundingUser)
+    {
+        if (lowerLimit == null || upperLimit == null) {
+            throw new IllegalArgumentException("Lower limit and upper limit are required.");
+        }
+        
+        if(lowerLimit > upperLimit) {
+            throw new IllegalArgumentException("Lower limit cannot be greater than upper limit.");
+        }
+        // ----------------------
+
         //Check if category exists already
         if(categoryRepository.findByCategoryName(name).isPresent())
         {
             throw new IllegalArgumentException("Category already exists.");
         }
+
+        String normalizedImageData = validateAndNormalizeImageData(imageData);
 
         //Create and save the category
         Category category = new Category(
@@ -69,16 +115,15 @@ public class CategoryService
                 units,
                 tags,
                 sortOrder,
-                foundingUser
+                foundingUser,
+                lowerLimit,
+                upperLimit,
+                normalizedImageData
         );
+        category.setCategoryScope(CategoryScope.LOCAL);
+        category.setGlobalSourceKey(null);
 
-        //Re-assign to ensure get UUID from database
-        category = categoryRepository.save(category);
-
-        //Generate the baseline for the category
-        generateAndSaveGlobalBaseline(category);
-
-        return category;
+        return categoryRepository.save(category);
     }
 
     @Transactional
@@ -87,24 +132,116 @@ public class CategoryService
                                    String description,
                                    List<String> tags,
                                    String units,
-                                   Boolean sortOrder)
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit)
     {
+        return updateCategory(categoryId, name, description, tags, units, sortOrder, lowerLimit, upperLimit, null);
+    }
+
+    @Transactional
+    public Category updateCategory(UUID categoryId,
+                                   String name,
+                                   String description,
+                                   List<String> tags,
+                                   String units,
+                                   Boolean sortOrder,
+                                   Double lowerLimit,
+                                   Double upperLimit,
+                                   String imageData)
+    {
+        // --- ADD THIS CHECK ---
+        if (lowerLimit == null || upperLimit == null) {
+            throw new IllegalArgumentException("Lower limit and upper limit are required.");
+        }
+        
+        if(lowerLimit > upperLimit) {
+            throw new IllegalArgumentException("Lower limit cannot be greater than upper limit.");
+        }
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
 
-        category.update(name, description, units, tags, sortOrder);
+        String normalizedImageData = imageData == null
+                ? category.getImageData()
+                : validateAndNormalizeImageData(imageData);
+
+        category.update(name, description, units, tags, sortOrder, lowerLimit, upperLimit, normalizedImageData);
         return categoryRepository.save(category);
     }
-
+    
     public Category getCategory(UUID categoryId)
     {
         return categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
     }
 
+    public Category getLiveCategory(UUID categoryId)
+    {
+        Category category = getCategory(categoryId);
+        if(!category.getLive())
+        {
+            throw new IllegalArgumentException("Category is pending admin approval.");
+        }
+        return category;
+    }
+
     public Page<Category> getAllCategories(Pageable pageable)
     {
-        return categoryRepository.findAllByOrderByCategoryNameAsc(pageable);
+        return categoryRepository.findAllByLiveTrueOrderByCategoryNameAsc(pageable);
+    }
+
+    public Page<Category> getPendingCategories(Pageable pageable)
+    {
+        return categoryRepository.findAllByLiveFalseOrderByCreatedAtAsc(pageable);
+    }
+
+    public Page<Category> getGlobalCategories(Pageable pageable)
+    {
+        return categoryRepository.findAllByLiveTrueAndCategoryScopeOrderByCategoryNameAsc(CategoryScope.GLOBAL, pageable);
+    }
+
+    @Transactional
+    public Category approveCategory(UUID categoryId)
+    {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        category.setLive(true);
+        Category saved = categoryRepository.save(category);
+        if(!saved.isGlobal())
+        {
+            ensureGlobalBaseline(saved);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public Category ensureGlobalCategory(String name,
+                                         String description,
+                                         String units,
+                                         List<String> tags,
+                                         Boolean sortOrder,
+                                         Double lowerLimit,
+                                         Double upperLimit,
+                                         String globalSourceKey)
+    {
+        String globalDescription = appendSourceAttribution(description, globalSourceKey);
+        Category category = categoryRepository.findByCategoryName(name).orElseGet(() ->
+                new Category(name, globalDescription, units, tags, sortOrder, null, lowerLimit, upperLimit)
+        );
+
+        category.update(name, globalDescription, units, tags, sortOrder, lowerLimit, upperLimit, category.getImageData());
+        category.setCategoryScope(CategoryScope.GLOBAL);
+        category.setGlobalSourceKey(globalSourceKey);
+        category.setLive(true);
+        return categoryRepository.save(category);
+    }
+
+    @Transactional
+    public void deleteGlobalCategoryBySourceKey(String globalSourceKey)
+    {
+        categoryRepository.findByGlobalSourceKey(globalSourceKey).ifPresent(category ->
+                deleteCategory(category.getCategoryId())
+        );
     }
 
     @Transactional
@@ -120,6 +257,9 @@ public class CategoryService
         //Delete all baselines in category
         globalBaselineRepository.deleteAllByCategory(category);
 
+        //Delete external reference points for global categories
+        globalDatasetPointRepository.deleteAllByCategory(category);
+
         //Delete the category itself
         categoryRepository.delete(category);
     }
@@ -127,6 +267,12 @@ public class CategoryService
     //------------------------------------------------------------------------------------------------
     // Private Methods
     //------------------------------------------------------------------------------------------------
+    private void ensureGlobalBaseline(Category category)
+    {
+        if(globalBaselineRepository.findByCategory(category).isPresent()) return;
+        generateAndSaveGlobalBaseline(category);
+    }
+
     private void generateAndSaveGlobalBaseline(Category category)
     {
         GlobalBaseline baseline = new GlobalBaseline(
@@ -145,10 +291,53 @@ public class CategoryService
         globalBaselineRepository.save(baseline);
     }
 
+    private String validateAndNormalizeImageData(String imageData)
+    {
+        if(imageData == null) return null;
+
+        String normalized = imageData.trim();
+        if(normalized.isEmpty()) return null;
+
+        String base64 = normalized;
+        int commaIndex = base64.indexOf(',');
+        if(base64.toLowerCase().startsWith("data:image") && commaIndex >= 0)
+        {
+            base64 = base64.substring(commaIndex + 1);
+        }
+
+        try
+        {
+            byte[] imageBytes = Base64.getMimeDecoder().decode(base64);
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+
+            if(image == null || image.getWidth() != 512 || image.getHeight() != 512)
+            {
+                throw new IllegalArgumentException(CATEGORY_IMAGE_DIMENSIONS_ERROR);
+            }
+        }
+        catch(IllegalArgumentException | IOException e)
+        {
+            throw new IllegalArgumentException(CATEGORY_IMAGE_DIMENSIONS_ERROR);
+        }
+
+        return normalized;
+    }
+
+    private String appendSourceAttribution(String description, String globalSourceKey)
+    {
+        if(globalSourceKey == null || !globalSourceKey.startsWith("nhanes_")) return description;
+        String baseDescription = description != null ? description.trim() : "";
+        if(baseDescription.toLowerCase().contains("source: cdc nhanes")) return baseDescription;
+        if(baseDescription.isEmpty()) return "Source: CDC NHANES";
+        return baseDescription + " Source: CDC NHANES";
+    }
+
     //------------------------------------------------------------------------------------------------
     // Private Variables
     //------------------------------------------------------------------------------------------------
     private final CategoryRepository categoryRepository;
     private final GlobalBaselineRepository globalBaselineRepository;
     private final ScoreRepository scoreRepository;
+    private final GlobalDatasetPointRepository globalDatasetPointRepository;
+    private static final String CATEGORY_IMAGE_DIMENSIONS_ERROR = "Image must be exactly 512x512 pixels.";
 }
