@@ -84,46 +84,6 @@ public interface ScoreRepository extends JpaRepository<Score, UUID>
             nativeQuery = true)
     Page<Score> findTopScoresPerUserAsc(@Param("categoryId") UUID categoryId, Pageable pageable);
 
-    @Query(value = """
-            SELECT
-                ranked.score_id,
-                ranked.category_id,
-                ranked.user_id,
-                ranked.score_value,
-                ranked.tags,
-                ranked.is_anonymous,
-                ranked.rejected,
-                ranked.submitted_at
-            FROM (
-                SELECT
-                    s.*,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY s.category_id
-                        ORDER BY
-                            CASE WHEN c.sort_order = true THEN s.score_value END DESC,
-                            CASE WHEN c.sort_order = false THEN s.score_value END ASC,
-                            s.submitted_at DESC
-                    ) AS rn
-                FROM scores s
-                INNER JOIN categories c ON c.category_id = s.category_id
-                WHERE s.user_id = :userId
-                  AND s.rejected = false
-                  AND c.live = true
-            ) ranked
-            WHERE ranked.rn = 1
-            ORDER BY ranked.submitted_at DESC
-            """,
-            countQuery = """
-                    SELECT COUNT(DISTINCT s.category_id)
-                    FROM scores s
-                    INNER JOIN categories c ON c.category_id = s.category_id
-                    WHERE s.user_id = :userId
-                      AND s.rejected = false
-                      AND c.live = true
-                    """,
-            nativeQuery = true)
-    Page<Score> findBestScoresPerCategoryForUser(@Param("userId") UUID userId, Pageable pageable);
-
     //------------------------------------------------------------------------------------------------
     // Rank Computation Queries
     //------------------------------------------------------------------------------------------------
