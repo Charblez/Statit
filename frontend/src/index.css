@@ -927,3 +927,22 @@ select.input {
 .dark-toggle-track.on .dark-toggle-thumb {
   transform: translateX(18px);
 }
+
+input, 
+textarea, 
+.input,
+.page-title, 
+.category-card h3, 
+.category-card .card-meta, 
+.name-cell,
+.profile-info-item span,
+.search-result-item span {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+.search-result-item,
+.leaderboard-table th,
+.score-table th {
+  text-align: start;
+}
