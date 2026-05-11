@@ -209,8 +209,11 @@ function AppContent() {
     try {
       const freshUser = await getUser(username);
       persistCurrentUser(freshUser);
-    } catch {
-      persistCurrentUser(null);
+    } catch (err) {
+      const message = String(err?.message || '').toLowerCase();
+      if (message.includes('user not found') || message.includes('404')) {
+        persistCurrentUser(null);
+      }
     }
   }, [persistCurrentUser]);
 
