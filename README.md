@@ -184,3 +184,7 @@ The schema includes support for:
 - Wilson Jimenez
 - Kenneth Chan
 - Derek Ly
+
+### Code Coverage
+<img width="2169" height="448" alt="image" src="https://github.com/user-attachments/assets/182f6b8d-a640-4d3d-8208-3fc5b5c07468" />
+
