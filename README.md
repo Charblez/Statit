@@ -41,9 +41,7 @@ Anonymous submissions are displayed as separate anonymous entries instead of bei
 
 - Users can create accounts and log in.
 - Passwords are hashed on the backend and verified during login.
-- Legacy plain-text passwords can be upgraded to hashed passwords after successful login.
 - User profile data includes demographics used by score submissions and filtering.
-- Sessions are stored client-side so page refreshes do not immediately log the user out when a profile refresh request fails for a transient reason.
 
 ### Category Gallery
 
