@@ -15,7 +15,7 @@ public class HeightGlobalDatasetProvider implements GlobalDatasetProvider
     @Override
     public String sourceKey()
     {
-        return OwidHeightDatasetSeeder.HEIGHT_SOURCE_KEY;
+        return NhanesDatasetSeeder.HEIGHT_SOURCE_KEY;
     }
 
     @Override
@@ -23,8 +23,8 @@ public class HeightGlobalDatasetProvider implements GlobalDatasetProvider
     {
         return globalDatasetPointService.buildSnapshot(
                 sourceKey(),
-                OwidHeightDatasetSeeder.HEIGHT_SOURCE_NAME,
-                OwidHeightDatasetSeeder.HEIGHT_DOC_URL,
+                NhanesDatasetSeeder.NHANES_SOURCE_NAME + " - Height",
+                NhanesDatasetSeeder.BODY_MEASURES_DOC_URL,
                 tags
         );
     }

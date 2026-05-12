@@ -65,6 +65,13 @@ export function createUser({ username, email, passwordHash, birthday, demographi
   });
 }
 
+export function loginUser({ username, password }) {
+  return request('/users/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+}
+
 export function getUser(username) {
   return request(`/users/${encodeURIComponent(username)}`);
 }

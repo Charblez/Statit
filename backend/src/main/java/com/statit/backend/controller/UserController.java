@@ -13,6 +13,7 @@ package com.statit.backend.controller;
 // Imports
 //----------------------------------------------------------------------------------------------------
 import com.statit.backend.dto.UserCreateRequest;
+import com.statit.backend.dto.UserLoginRequest;
 import com.statit.backend.dto.UserResponse;
 import com.statit.backend.model.User;
 import com.statit.backend.service.UserService;
@@ -54,6 +55,14 @@ public class UserController
 
         UserResponse userResponse = UserResponse.fromUser(newUser, "User created successfully");
         return ResponseEntity.ok(userResponse);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<UserResponse> login(@RequestBody UserLoginRequest request)
+    {
+        User user = userService.login(request.username(), request.password());
+        UserResponse response = UserResponse.fromUser(user, "Login successful");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{username}")

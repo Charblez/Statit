@@ -54,6 +54,8 @@ class UserServiceTest
         User result = userService.createUser("alice", "a@x.com", "hash", LocalDate.of(2000, 1, 1), null);
 
         assertEquals("alice", result.getUsername());
+        assertNotEquals("hash", result.getPasswordHash());
+        assertTrue(result.getPasswordHash().startsWith("pbkdf2_sha256$"));
         verify(userRepository).save(any(User.class));
     }
 
@@ -109,6 +111,32 @@ class UserServiceTest
     }
 
     @Test
+    void loginAcceptsMatchingPasswordAndUpgradesLegacyPlaintextPassword()
+    {
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(existing));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User result = userService.login("alice", "h");
+
+        assertSame(existing, result);
+        assertNotEquals("h", result.getPasswordHash());
+        assertTrue(result.getPasswordHash().startsWith("pbkdf2_sha256$"));
+        verify(userRepository).save(existing);
+    }
+
+    @Test
+    void loginRejectsWrongPassword()
+    {
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(existing));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> userService.login("alice", "wrong"));
+
+        assertTrue(ex.getMessage().contains("Invalid username or password"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
     void getAllUsersReturnsRepoList()
     {
         List<User> users = Arrays.asList(existing);
@@ -129,7 +157,8 @@ class UserServiceTest
 
         assertEquals("alice2", result.getUsername());
         assertEquals("a2@x", result.getEmail());
-        assertEquals("h2", result.getPasswordHash());
+        assertNotEquals("h2", result.getPasswordHash());
+        assertTrue(result.getPasswordHash().startsWith("pbkdf2_sha256$"));
     }
 
     @Test

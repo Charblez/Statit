@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUser, getUser } from '../api';
+import { createUser, loginUser } from '../api';
 
 export default function AuthPage({ mode, onLogin }) {
   const [username, setUsername] = useState('');
@@ -51,7 +51,7 @@ export default function AuthPage({ mode, onLogin }) {
         onLogin(res);
         navigate('/');
       } else {
-        const res = await getUser(username);
+        const res = await loginUser({ username, password });
         onLogin(res);
         navigate('/');
       }
