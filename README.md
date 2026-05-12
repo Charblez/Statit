@@ -170,39 +170,6 @@ cd frontend
 npm run build
 ```
 
-## API Overview
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/api/v1/users` | Create a user |
-| `POST` | `/api/v1/users/login` | Log in with password verification |
-| `GET` | `/api/v1/users/{username}` | Get user profile data |
-| `GET` | `/api/v1/users` | List users |
-| `PUT` | `/api/v1/users/{userId}` | Update a user |
-| `DELETE` | `/api/v1/users/{userId}` | Delete a user |
-| `POST` | `/api/v1/categories` | Create a local category |
-| `GET` | `/api/v1/categories` | List approved categories |
-| `GET` | `/api/v1/categories/{categoryId}` | Get category details |
-| `POST` | `/api/v1/scores` | Submit a score |
-| `GET` | `/api/v1/scores/user/{username}` | Get a user's best category scores |
-| `GET` | `/api/v1/scores/user/{username}/category/{categoryId}/top` | Get a user's best score in one category |
-| `GET` | `/api/v1/leaderboards/{categoryId}/top` | Get leaderboard rows |
-| `POST` | `/api/v1/leaderboards/{categoryId}/filtered` | Get filtered leaderboard rows |
-| `GET` | `/api/v1/leaderboards/{categoryId}/snapshot` | Get leaderboard distribution snapshot |
-| `GET` | `/api/v1/leaderboards/{categoryId}/baselines` | Get local statistics/baselines |
-| `GET` | `/api/v1/leaderboards/{categoryId}/correlation` | Get paired local-category correlation data |
-| `GET` | `/api/v1/global-categories` | List global category metadata |
-| `GET` | `/api/v1/global-categories/{categoryId}/dataset` | Get global dataset histogram/statistics |
-| `POST` | `/api/v1/global-categories/{categoryId}/compare` | Compare a submitted score against a global dataset |
-| `GET` | `/api/v1/admin/categories/pending` | List pending categories |
-| `GET` | `/api/v1/admin/categories/{categoryId}` | Get category for admin review/editing |
-| `PUT` | `/api/v1/admin/categories/{categoryId}` | Update category as admin |
-| `POST` | `/api/v1/admin/categories/{categoryId}/approve` | Approve category |
-| `DELETE` | `/api/v1/admin/categories/{categoryId}` | Delete category |
-| `DELETE` | `/api/v1/admin/scores/{scoreId}` | Delete score |
-| `GET` | `/api/v1/admin/users` | Search users |
-| `POST` | `/api/v1/admin/users/{username}/grant-admin` | Grant admin permissions |
-
 ## Database Notes
 
 The schema includes support for:
@@ -237,13 +204,6 @@ frontend/
     api.js         API client
     index.css      Global styling
 ```
-
-## Contributing
-
-1. Create a feature branch.
-2. Make focused changes.
-3. Run backend tests and the frontend build check when relevant.
-4. Open a pull request into the target branch for review.
 
 ## Team
 
