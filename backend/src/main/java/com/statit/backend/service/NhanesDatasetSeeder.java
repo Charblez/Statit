@@ -43,18 +43,21 @@ public class NhanesDatasetSeeder implements CommandLineRunner
     @Transactional
     public void run(String... args)
     {
+        Optional<Category> heightCategory = categoryRepository.findByGlobalSourceKey(HEIGHT_SOURCE_KEY);
         Optional<Category> weightCategory = categoryRepository.findByGlobalSourceKey(WEIGHT_SOURCE_KEY);
         Optional<Category> bmiCategory = categoryRepository.findByGlobalSourceKey(BMI_SOURCE_KEY);
-        if(weightCategory.isEmpty() || bmiCategory.isEmpty()) return;
+        if(heightCategory.isEmpty() || weightCategory.isEmpty() || bmiCategory.isEmpty()) return;
 
-        if(hasUsableNhanesSeed(weightCategory.get()) && hasUsableNhanesSeed(bmiCategory.get()))
+        if(hasUsableNhanesSeed(heightCategory.get())
+                && hasUsableNhanesSeed(weightCategory.get())
+                && hasUsableNhanesSeed(bmiCategory.get()))
         {
             return;
         }
 
         try
         {
-            seedNhanesBodyMeasures(weightCategory.get(), bmiCategory.get());
+            seedNhanesBodyMeasures(heightCategory.get(), weightCategory.get(), bmiCategory.get());
         }
         catch(RuntimeException e)
         {
@@ -62,12 +65,13 @@ public class NhanesDatasetSeeder implements CommandLineRunner
         }
     }
 
-    private void seedNhanesBodyMeasures(Category weightCategory, Category bmiCategory)
+    private void seedNhanesBodyMeasures(Category heightCategory, Category weightCategory, Category bmiCategory)
     {
         List<Map<String, Object>> bodyRows = sasXportParser.fetchRows(BODY_MEASURES_XPT_URL);
         List<Map<String, Object>> demographicRows = sasXportParser.fetchRows(DEMOGRAPHICS_XPT_URL);
         Map<Integer, Map<String, String>> demographicsBySeqn = buildDemographicsBySeqn(demographicRows);
 
+        List<GlobalDatasetPoint> heightPoints = new ArrayList<>();
         List<GlobalDatasetPoint> weightPoints = new ArrayList<>();
         List<GlobalDatasetPoint> bmiPoints = new ArrayList<>();
 
@@ -77,8 +81,20 @@ public class NhanesDatasetSeeder implements CommandLineRunner
             if(seqn == null) continue;
 
             Map<String, String> demographics = demographicsBySeqn.getOrDefault(seqn, Map.of());
+            Double height = toDouble(row.get("BMXHT"));
             Double weight = toDouble(row.get("BMXWT"));
             Double bmi = toDouble(row.get("BMXBMI"));
+
+            if(height != null)
+            {
+                heightPoints.add(new GlobalDatasetPoint(
+                        heightCategory,
+                        NHANES_SOURCE_NAME,
+                        String.valueOf(seqn),
+                        height,
+                        demographics
+                ));
+            }
 
             if(weight != null)
             {
@@ -103,8 +119,10 @@ public class NhanesDatasetSeeder implements CommandLineRunner
             }
         }
 
+        deletePointsForCategory(heightCategory);
         deletePointsForCategory(weightCategory);
         deletePointsForCategory(bmiCategory);
+        batchInsert(heightPoints);
         batchInsert(weightPoints);
         batchInsert(bmiPoints);
     }
@@ -251,6 +269,7 @@ public class NhanesDatasetSeeder implements CommandLineRunner
         return null;
     }
 
+    public static final String HEIGHT_SOURCE_KEY = "nhanes_height";
     public static final String WEIGHT_SOURCE_KEY = "nhanes_weight";
     public static final String BMI_SOURCE_KEY = "nhanes_bmi";
     public static final String NHANES_SOURCE_NAME = "CDC NHANES August 2021-August 2023";

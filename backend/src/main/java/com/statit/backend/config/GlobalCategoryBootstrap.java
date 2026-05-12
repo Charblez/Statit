@@ -2,7 +2,6 @@ package com.statit.backend.config;
 
 import com.statit.backend.service.CategoryService;
 import com.statit.backend.service.NhanesDatasetSeeder;
-import com.statit.backend.service.OwidHeightDatasetSeeder;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -25,13 +24,13 @@ public class GlobalCategoryBootstrap implements CommandLineRunner
 
         categoryService.ensureGlobalCategory(
                 "Height",
-                "Compare your height against OWID population height data. Source: OWID",
+                "Compare your height against CDC NHANES row-level body-measures data. Source: CDC NHANES",
                 "cm",
-                List.of("global", "health"),
+                List.of("global", "health", "nhanes"),
                 true,
                 50.0,
                 250.0,
-                OwidHeightDatasetSeeder.HEIGHT_SOURCE_KEY
+                NhanesDatasetSeeder.HEIGHT_SOURCE_KEY
         );
 
         categoryService.ensureGlobalCategory(
