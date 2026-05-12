@@ -177,7 +177,6 @@ The schema includes support for:
 - Category scope through `category_scope`, defaulting to `LOCAL`.
 - Global source keys for seeded external datasets.
 - External global dataset points in `global_dataset_points`.
-- JSONB demographics for flexible filtering.
 
 ## Team
 
