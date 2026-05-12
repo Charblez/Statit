@@ -1,3 +1,5 @@
+# Statit
+
 The app supports user-created local categories, seeded global categories backed by public health datasets, leaderboards, percentile/rank calculations, category images, admin moderation, profile score history, and statistical visualizations.
 
 - **Frontend:** React, Vite, React Router
@@ -60,3 +62,7 @@ The backend seeds row-level external records into the database on startup. Each 
 - Global source keys for seeded external datasets.
 - External global dataset points in `global_dataset_points`.
 - JSONB demographics for flexible filtering.
+
+## Code Coverage 
+<img width="2169" height="448" alt="image" src="https://github.com/user-attachments/assets/154fb293-319a-4e31-b682-9fde83fb53a0" />
+
