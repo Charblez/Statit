@@ -181,30 +181,6 @@ The schema includes support for:
 - External global dataset points in `global_dataset_points`.
 - JSONB demographics for flexible filtering.
 
-## Project Structure
-
-```text
-backend/
-  src/main/java/com/statit/backend/
-    config/        Spring and bootstrap configuration
-    controller/    REST API controllers
-    dto/           Request and response payloads
-    exception/     API error handling
-    model/         JPA entities
-    repository/    Database access
-    service/       Business logic, statistics, and dataset seeding
-  src/main/resources/
-    schema.sql
-  docker-compose.yml
-
-frontend/
-  src/
-    pages/         React route pages
-    utils/         Shared frontend utilities
-    api.js         API client
-    index.css      Global styling
-```
-
 ## Team
 
 - Charles Bassani
